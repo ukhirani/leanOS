@@ -72,6 +72,8 @@ class FakeSettingsStore(initial: Settings = Settings()) : SettingsStore {
     }
     override suspend fun setGrayscaleIcons(enabled: Boolean) = state.update { it.copy(grayscaleIcons = enabled) }
     override suspend fun setHidden(packages: Set<String>) = state.update { it.copy(hidden = packages) }
+    override suspend fun setLimitExtension(packageName: String, at: java.time.Instant) =
+        state.update { it.copy(limitExtensions = it.limitExtensions + (packageName to at)) }
 }
 
 class FakeFocusService(var running: Boolean = true) : FocusService {

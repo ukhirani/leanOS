@@ -108,4 +108,18 @@ class DataStoreSettingsStoreTest {
         scopes.forEach { it.coroutineContext[Job]!!.cancelAndJoin() }
         assertEquals(setOf("pkg.a", "pkg.b"), DataStoreSettingsStore(dataStore(file)).settings.first().hidden)
     }
+
+    @Test
+    fun `limit extensions survive a restart`() = runBlocking {
+        val file = File(tmp.root, "e.preferences_pb")
+        val first = DataStoreSettingsStore(dataStore(file))
+        first.setLimitExtension("video", java.time.Instant.ofEpochMilli(1_000))
+        first.setLimitExtension("chat", java.time.Instant.ofEpochMilli(2_000))
+        first.setLimitExtension("video", java.time.Instant.ofEpochMilli(3_000))
+        scopes.forEach { it.coroutineContext[Job]!!.cancelAndJoin() }
+        assertEquals(
+            mapOf("video" to java.time.Instant.ofEpochMilli(3_000), "chat" to java.time.Instant.ofEpochMilli(2_000)),
+            DataStoreSettingsStore(dataStore(file)).settings.first().limitExtensions,
+        )
+    }
 }

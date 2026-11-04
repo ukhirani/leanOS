@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -30,6 +31,7 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
             dailyLimits = prefs.dailyLimits(),
             grayscaleIcons = prefs[GRAYSCALE_ICONS] ?: defaults.grayscaleIcons,
             hidden = prefs[HIDDEN].orEmpty(),
+            limitExtensions = prefs.limitExtensions(),
         )
     }
 
@@ -45,6 +47,20 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
             val limits = prefs.dailyLimits().toMutableMap()
             if (minutes == null) limits.remove(packageName) else limits[packageName] = minutes
             prefs[DAILY_LIMITS] = limits.entries.joinToString("\n") { "${it.key}=${it.value}" }
+        }
+    }
+
+    // One "package=epochMillis" line per extension; only the last one per package matters.
+    private fun Preferences.limitExtensions(): Map<String, Instant> =
+        this[LIMIT_EXTENSIONS].orEmpty().lines().mapNotNull { line ->
+            val (pkg, millis) = line.split('=').takeIf { it.size == 2 } ?: return@mapNotNull null
+            millis.toLongOrNull()?.let { pkg to Instant.ofEpochMilli(it) }
+        }.toMap()
+
+    override suspend fun setLimitExtension(packageName: String, at: Instant) {
+        store.edit { prefs ->
+            val extensions = prefs.limitExtensions() + (packageName to at)
+            prefs[LIMIT_EXTENSIONS] = extensions.entries.joinToString("\n") { "${it.key}=${it.value.toEpochMilli()}" }
         }
     }
 
@@ -89,5 +105,6 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
         val DAILY_LIMITS = stringPreferencesKey("daily_limits")
         val GRAYSCALE_ICONS = booleanPreferencesKey("grayscale_icons")
         val HIDDEN = stringSetPreferencesKey("hidden")
+        val LIMIT_EXTENSIONS = stringPreferencesKey("limit_extensions")
     }
 }

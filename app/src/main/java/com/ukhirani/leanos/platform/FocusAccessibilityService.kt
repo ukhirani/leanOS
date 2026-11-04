@@ -3,6 +3,8 @@ package com.ukhirani.leanos.platform
 import android.accessibilityservice.AccessibilityService
 import android.content.ComponentName
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.view.accessibility.AccessibilityEvent
 import com.ukhirani.leanos.BlockActivity
 import com.ukhirani.leanos.usage.LimitDecision
@@ -14,12 +16,13 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
  * The Focus accessibility service. It only listens to window-state changes to learn which app
  * is in front, asks the Limit policy about it and covers a blocked app with the Block screen,
- * and performs the global actions for home gestures. It reads no screen content.
+ * also mid-session at the instant the policy says it becomes blocked, and performs the global actions for home gestures. It reads no screen content.
  * The companion is the real [FocusService] the rest of LeanOS talks to.
  */
 class FocusAccessibilityService : AccessibilityService() {
@@ -27,13 +30,13 @@ class FocusAccessibilityService : AccessibilityService() {
     private val limitPolicy by lazy {
         LimitPolicy(ScreenTime(AndroidUsageSource(this), SystemClockSource, packageName), SystemClockSource)
     }
+    private val settingsStore by lazy { DataStoreSettingsStore(this) }
+    private val handler = Handler(Looper.getMainLooper())
     @Volatile private var dailyLimits = emptyMap<String, Int>()
 
     override fun onServiceConnected() {
         instance = this
-        scope.launch {
-            DataStoreSettingsStore(this@FocusAccessibilityService).settings.collect { dailyLimits = it.dailyLimits }
-        }
+        scope.launch { settingsStore.settings.collect { dailyLimits = it.dailyLimits } }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
@@ -44,12 +47,23 @@ class FocusAccessibilityService : AccessibilityService() {
         if (!isActivity(pkg, event.className?.toString())) return
         if (foreground.value == pkg) return
         foreground.value = pkg
+        handler.removeCallbacksAndMessages(null) // the previous app's mid-session check
         if (pkg != packageName && pkg in dailyLimits) scope.launch { enforceLimit(pkg) }
     }
 
-    private fun enforceLimit(pkg: String) {
-        val blocked = limitPolicy.decide(pkg, dailyLimits) as? LimitDecision.Blocked ?: return
-        if (foreground.value == pkg) startActivity(BlockActivity.intent(this, pkg, blocked))
+    // Reads settings fresh, so an extension granted just now on the Block screen counts.
+    private suspend fun enforceLimit(pkg: String) {
+        val settings = settingsStore.settings.first()
+        if (foreground.value != pkg) return
+        when (val decision = limitPolicy.decide(pkg, settings.dailyLimits, settings.limitExtensions)) {
+            is LimitDecision.Blocked -> startActivity(BlockActivity.intent(this, pkg, decision))
+            // Check again when it runs out; at least a second later, in case usage stats lag.
+            is LimitDecision.Allowed -> handler.postDelayed(
+                { if (foreground.value == pkg) scope.launch { enforceLimit(pkg) } },
+                decision.remaining.toMillis().coerceAtLeast(1_000),
+            )
+            LimitDecision.Unlimited -> Unit
+        }
     }
 
     private fun isActivity(pkg: String, className: String?): Boolean = className != null &&
@@ -64,6 +78,7 @@ class FocusAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         instance = null
+        handler.removeCallbacksAndMessages(null)
         scope.cancel()
         super.onDestroy()
     }

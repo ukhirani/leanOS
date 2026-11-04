@@ -1,5 +1,6 @@
 package com.ukhirani.leanos.platform
 
+import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 
 data class Settings(
@@ -17,6 +18,8 @@ data class Settings(
     val grayscaleIcons: Boolean = true,
     /** Hidden apps' package names: kept out of the drawer, search and favorites. */
     val hidden: Set<String> = emptySet(),
+    /** Daily-limit extensions: package name to when its last "5 more minutes" was granted. */
+    val limitExtensions: Map<String, Instant> = emptyMap(),
 )
 
 /** Clock style presets: each one is a set of Google Sans Flex axes, never a different font. */
@@ -55,4 +58,7 @@ interface SettingsStore {
     suspend fun setDailyLimit(packageName: String, minutes: Int?)
     suspend fun setGrayscaleIcons(enabled: Boolean)
     suspend fun setHidden(packages: Set<String>)
+
+    /** Records that [packageName] was given its daily-limit extension at [at]. */
+    suspend fun setLimitExtension(packageName: String, at: Instant)
 }

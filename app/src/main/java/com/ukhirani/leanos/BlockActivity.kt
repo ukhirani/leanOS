@@ -17,6 +17,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -24,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import com.ukhirani.leanos.home.GlanceFormat
 import com.ukhirani.leanos.platform.DataStoreSettingsStore
 import com.ukhirani.leanos.platform.Settings
@@ -31,8 +33,12 @@ import com.ukhirani.leanos.platform.SystemClockSource
 import com.ukhirani.leanos.ui.LeanTheme
 import com.ukhirani.leanos.usage.LimitDecision
 import java.time.Duration
+import kotlinx.coroutines.launch
 
-/** The Block screen: covers an app whose daily limit is used up. Leaving it always goes home. */
+/**
+ * The Block screen: covers an app whose daily limit is used up. Back goes home; "5 more minutes"
+ * (once per app per day) returns to the app.
+ */
 class BlockActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -42,6 +48,7 @@ class BlockActivity : ComponentActivity() {
             packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString()
         }.getOrDefault(pkg)
         val used = GlanceFormat(SystemClockSource).durationText(Duration.ofMillis(intent.getLongExtra(EXTRA_USED_MS, 0)))
+        val canExtend = intent.getBooleanExtra(EXTRA_CAN_EXTEND, false)
         val settingsStore = DataStoreSettingsStore(this)
         setContent {
             val settings by settingsStore.settings.collectAsState(initial = Settings())
@@ -68,9 +75,22 @@ class BlockActivity : ComponentActivity() {
                         Button(onClick = ::goHome, modifier = Modifier.padding(top = 16.dp).heightIn(min = 48.dp)) {
                             Text(stringResource(R.string.block_go_home))
                         }
+                        if (canExtend) {
+                            TextButton(onClick = { extend(settingsStore, pkg) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                                Text(stringResource(R.string.block_extend))
+                            }
+                        }
                     }
                 }
             }
+        }
+    }
+
+    // Saved before finishing, so the Focus service sees it when the app comes back to the front.
+    private fun extend(store: DataStoreSettingsStore, pkg: String) {
+        lifecycleScope.launch {
+            store.setLimitExtension(pkg, SystemClockSource.now().toInstant())
+            finish()
         }
     }
 
@@ -82,11 +102,13 @@ class BlockActivity : ComponentActivity() {
     companion object {
         private const val EXTRA_PACKAGE = "package"
         private const val EXTRA_USED_MS = "used_ms"
+        private const val EXTRA_CAN_EXTEND = "can_extend"
 
         fun intent(context: Context, packageName: String, blocked: LimitDecision.Blocked): Intent =
             Intent(context, BlockActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 .putExtra(EXTRA_PACKAGE, packageName)
                 .putExtra(EXTRA_USED_MS, blocked.used.toMillis())
+                .putExtra(EXTRA_CAN_EXTEND, blocked.canExtend)
     }
 }

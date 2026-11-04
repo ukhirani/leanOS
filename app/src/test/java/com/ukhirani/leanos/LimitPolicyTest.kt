@@ -4,8 +4,10 @@ import com.ukhirani.leanos.usage.LimitDecision
 import com.ukhirani.leanos.usage.LimitPolicy
 import com.ukhirani.leanos.usage.ScreenTime
 import java.time.Duration
+import java.time.Instant
 import java.time.ZonedDateTime
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LimitPolicyTest {
@@ -73,5 +75,46 @@ class LimitPolicyTest {
     fun `without usage access limits cannot be enforced`() {
         usage.access = false
         assertEquals(LimitDecision.Unlimited, policy.decide("video", mapOf("video" to 30)))
+    }
+
+    private fun at(hhmm: String): Instant = ZonedDateTime.parse(t(hhmm)).toInstant()
+
+    @Test
+    fun `a blocked app can be extended once today`() {
+        usage.resumed("video", t("08:00")); usage.paused("video", t("08:30"))
+        assertTrue((policy.decide("video", mapOf("video" to 30)) as LimitDecision.Blocked).canExtend)
+    }
+
+    @Test
+    fun `an extension allows exactly five more minutes from when it was granted`() {
+        usage.resumed("video", t("21:00"))
+        clock.current = ZonedDateTime.parse(t("21:30"))
+        val extended = mapOf("video" to at("21:30"))
+        assertEquals(LimitDecision.Allowed(Duration.ofMinutes(5)), policy.decide("video", mapOf("video" to 30), extended))
+        clock.current = ZonedDateTime.parse(t("21:33"))
+        assertEquals(LimitDecision.Allowed(Duration.ofMinutes(2)), policy.decide("video", mapOf("video" to 30), extended))
+    }
+
+    @Test
+    fun `once the extension is used up the app is blocked with no further extension`() {
+        usage.resumed("video", t("21:00"))
+        clock.current = ZonedDateTime.parse(t("21:35"))
+        val decision = policy.decide("video", mapOf("video" to 30), mapOf("video" to at("21:30")))
+        assertEquals(LimitDecision.Blocked(Duration.ofMinutes(35), parisMidnight, canExtend = false), decision)
+    }
+
+    @Test
+    fun `an extension is per app`() {
+        usage.resumed("video", t("08:00")); usage.paused("video", t("08:30"))
+        val decision = policy.decide("video", mapOf("video" to 30), mapOf("chat" to at("21:00")))
+        assertTrue((decision as LimitDecision.Blocked).canExtend)
+    }
+
+    @Test
+    fun `yesterday's extension doesn't count, so a new one is available after midnight`() {
+        usage.resumed("video", "2026-11-05T00:00:00+01:00[Europe/Paris]")
+        clock.current = ZonedDateTime.parse("2026-11-05T00:30:00+01:00[Europe/Paris]")
+        val decision = policy.decide("video", mapOf("video" to 30), mapOf("video" to at("23:58")))
+        assertTrue((decision as LimitDecision.Blocked).canExtend)
     }
 }

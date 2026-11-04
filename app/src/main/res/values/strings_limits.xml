@@ -12,4 +12,5 @@
     <string name="block_used_today">Used %1$s today. Its daily limit is up.</string>
     <string name="block_unlocks">Unlocks at midnight</string>
     <string name="block_go_home">Go home</string>
+    <string name="block_extend">5 more minutes</string>
 </resources>
