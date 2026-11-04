@@ -53,9 +53,10 @@ import com.ukhirani.leanos.ui.LeanTheme
 import com.ukhirani.leanos.usage.ScreenTime
 import com.ukhirani.leanos.usage.ScreenTimeToday
 import kotlin.concurrent.thread
+import androidx.lifecycle.lifecycleScope
 
 /** Destinations layered over home; null means home itself. */
-private enum class SettingsPage { Settings, About }
+private enum class SettingsPage { Settings, About, WeatherCity }
 
 class HomeActivity : ComponentActivity() {
     // Wiring lives here: real platform sources in, logic and UI out.
@@ -75,6 +76,21 @@ class HomeActivity : ComponentActivity() {
     private val screenTime by lazy { ScreenTime(usageSource, SystemClockSource, packageName) }
     private var usageAccess by mutableStateOf(false)
     private var screenTimeToday by mutableStateOf<ScreenTimeToday?>(null)
+    private val weatherSource = com.ukhirani.leanos.platform.OpenMeteoWeatherSource()
+    private val weatherRefresh by lazy { com.ukhirani.leanos.weather.WeatherRefresh(weatherSource, settingsStore, SystemClockSource) }
+
+    /** Off the main thread; any failure (network, storage) leaves home showing what it had. */
+    private fun refreshWeather(before: suspend () -> Unit = {}) {
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                before()
+                weatherRefresh.refreshIfStale()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Exception) {
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -94,6 +110,7 @@ class HomeActivity : ComponentActivity() {
                     homeClock, settingsStore, homeGestures, homeLayout, alarmSource, batterySource,
                     onSwipeUp = openDrawer, onOpenSettings = openSettings,
                     usageAccess = usageAccess, screenTime = screenTimeToday,
+                    onSetCity = { settingsPage = SettingsPage.WeatherCity },
                 ) {
                     FavoritesRow(favorites, installedApps::icon, installedApps::launch, showMenu, iconSize)
                 }
@@ -116,6 +133,18 @@ class HomeActivity : ComponentActivity() {
                             settingsStore,
                             onBack = { settingsPage = null },
                             onOpenAbout = { settingsPage = SettingsPage.About },
+                            onOpenWeatherCity = { settingsPage = SettingsPage.WeatherCity },
+                        )
+                    }
+                    SettingsPage.WeatherCity -> {
+                        BackHandler { settingsPage = SettingsPage.Settings }
+                        com.ukhirani.leanos.settings.WeatherCityScreen(
+                            settingsStore, weatherSource,
+                            onPick = { city ->
+                                refreshWeather { settingsStore.setWeatherCity(city) }
+                                settingsPage = SettingsPage.Settings
+                            },
+                            onBack = { settingsPage = SettingsPage.Settings },
                         )
                     }
                     SettingsPage.About -> {
@@ -151,6 +180,7 @@ class HomeActivity : ComponentActivity() {
         super.onResume()
         usageAccess = usageSource.hasAccess()
         thread { screenTime.today().let { runOnUiThread { screenTimeToday = it } } }
+        refreshWeather()
     }
 
     // Pressing Home while the drawer or settings is open returns to home.

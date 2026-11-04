@@ -42,7 +42,12 @@ import kotlinx.coroutines.launch
 
 /** LeanOS settings: the look. Every change is written to the store and applies live. */
 @Composable
-fun SettingsScreen(settingsStore: SettingsStore, onBack: () -> Unit, onOpenAbout: () -> Unit) {
+fun SettingsScreen(
+    settingsStore: SettingsStore,
+    onBack: () -> Unit,
+    onOpenAbout: () -> Unit,
+    onOpenWeatherCity: () -> Unit = {},
+) {
     val settings by settingsStore.settings.collectAsState(initial = Settings())
     val scope = rememberCoroutineScope()
     fun save(block: suspend SettingsStore.() -> Unit) { scope.launch { settingsStore.block() } }
@@ -96,6 +101,17 @@ fun SettingsScreen(settingsStore: SettingsStore, onBack: () -> Unit, onOpenAbout
                     IconSize.LARGE -> R.string.icon_size_large
                 } },
             ) { save { setIconSize(it) } }
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_weather_city)) },
+                supportingContent = { Text(settings.weatherCity?.name ?: stringResource(R.string.weather_city_not_set)) },
+                modifier = Modifier.clickable(onClick = onOpenWeatherCity),
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_fahrenheit)) },
+                trailingContent = {
+                    Switch(checked = settings.useFahrenheit, onCheckedChange = { save { setUseFahrenheit(it) } })
+                },
+            )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.about_title)) },
                 modifier = Modifier.clickable(onClick = onOpenAbout),

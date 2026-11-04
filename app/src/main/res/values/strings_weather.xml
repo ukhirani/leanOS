@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_fahrenheit">Temperature in °F</string>
+    <string name="settings_weather_city">Weather city</string>
+    <string name="weather_city_not_set">Not set</string>
+    <string name="weather_city_title">Weather city</string>
+    <string name="weather_city_search">City name</string>
+    <string name="weather_city_why">Type your city. Only its name and coordinates are sent to Open-Meteo to get the weather; LeanOS never asks for your location.</string>
+    <string name="weather_city_no_results">No city found</string>
+    <string name="weather_city_error">Couldn\'t search. Check your connection.</string>
+    <string name="weather_city_clear">Remove city</string>
+</resources>

@@ -64,6 +64,12 @@ class FakeSettingsStore(initial: Settings = Settings()) : SettingsStore {
     override suspend fun setFavorites(packages: List<String>) {
         state.update { it.copy(favorites = packages) }
     }
+
+    override suspend fun setUseFahrenheit(enabled: Boolean) = state.update { it.copy(useFahrenheit = enabled) }
+    override suspend fun setWeatherCity(city: com.ukhirani.leanos.platform.City?) =
+        state.update { it.copy(weatherCity = city, weather = null) }
+    override suspend fun setWeather(weather: com.ukhirani.leanos.platform.CurrentWeather) =
+        state.update { it.copy(weather = weather) }
 }
 
 class FakeFocusService(var running: Boolean = true) : FocusService {

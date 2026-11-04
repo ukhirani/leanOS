@@ -12,12 +12,15 @@ data class GlanceChip(val kind: Kind, val text: String, val description: String)
 
 /** One glance card below the chips, or the "tap to enable" chip standing in for a card that lacks its permission. */
 sealed interface GlanceCard {
-    enum class Feature { ScreenTime }
+    enum class Feature { ScreenTime, Weather }
 
     data class Enable(val feature: Feature) : GlanceCard
 
     /** Today's total, the top 3 apps, and the full list shown when expanded. */
     data class ScreenTime(val total: String, val top: List<AppTime>, val all: List<AppTime>) : GlanceCard
+
+    /** Current weather for the chosen city; [age] is set once it is stale ("Updated 3h ago"). */
+    data class Weather(val city: String, val temperature: String, val condition: String, val age: String?) : GlanceCard
 }
 
 data class AppTime(val packageName: String, val time: String)
@@ -38,8 +41,11 @@ class HomeLayout(private val format: GlanceFormat) {
         }
     }
 
-    /** Glance cards in order. Screen time waits for its first reading; without usage access it is an enable chip. */
-    fun cards(usageAccess: Boolean, screenTime: ScreenTimeToday?): List<GlanceCard> = buildList {
+    /**
+     * Glance cards in order. Screen time waits for its first reading; without usage access it is an enable chip.
+     * Weather shows only when [settings] is given: a "set your city" chip until a city is picked, then the cached weather.
+     */
+    fun cards(usageAccess: Boolean, screenTime: ScreenTimeToday?, settings: Settings? = null): List<GlanceCard> = buildList {
         when {
             !usageAccess -> add(GlanceCard.Enable(GlanceCard.Feature.ScreenTime))
             screenTime != null -> {
@@ -47,5 +53,17 @@ class HomeLayout(private val format: GlanceFormat) {
                 add(GlanceCard.ScreenTime(format.durationText(screenTime.total), all.take(3), all))
             }
         }
+        if (settings != null) weatherCard(settings)?.let(::add)
+    }
+
+    private fun weatherCard(settings: Settings): GlanceCard? {
+        val city = settings.weatherCity ?: return GlanceCard.Enable(GlanceCard.Feature.Weather)
+        val weather = settings.weather ?: return null
+        return GlanceCard.Weather(
+            city = city.name.substringBefore(','),
+            temperature = format.temperatureText(weather.celsius, settings),
+            condition = format.conditionText(weather.code),
+            age = format.weatherAgeText(weather.at),
+        )
     }
 }

@@ -11,6 +11,12 @@ data class Settings(
     val iconSize: IconSize = IconSize.MEDIUM,
     /** Favorite apps' package names, in row order (at most 6). */
     val favorites: List<String> = emptyList(),
+    /** °F instead of the default °C. */
+    val useFahrenheit: Boolean = false,
+    /** The city the Weather card is for; null until the user picks one. */
+    val weatherCity: City? = null,
+    /** The last weather fetched for [weatherCity]; null until the first fetch succeeds. */
+    val weather: CurrentWeather? = null,
 )
 
 /** Clock style presets: each one is a set of Google Sans Flex axes, never a different font. */
@@ -44,4 +50,8 @@ interface SettingsStore {
     suspend fun setBackground(mode: BackgroundMode)
     suspend fun setIconSize(size: IconSize)
     suspend fun setFavorites(packages: List<String>)
+    suspend fun setUseFahrenheit(enabled: Boolean)
+    /** Picking a new city (or clearing it) drops the cached weather of the old one. */
+    suspend fun setWeatherCity(city: City?)
+    suspend fun setWeather(weather: CurrentWeather)
 }

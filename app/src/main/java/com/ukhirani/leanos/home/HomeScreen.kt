@@ -48,6 +48,7 @@ fun HomeScreen(
     onOpenSettings: (() -> Unit)? = null,
     usageAccess: Boolean = false,
     screenTime: ScreenTimeToday? = null,
+    onSetCity: () -> Unit = {},
     favorites: @Composable () -> Unit = {},
 ) {
     val settings by settingsStore.settings.collectAsState(initial = Settings())
@@ -94,8 +95,9 @@ fun HomeScreen(
             // Recomputed each minute with the clock, so the alarm countdown and date stay current.
             val chips = remember(time, settings, alarm, battery) { homeLayout.chips(settings, alarm, battery) }
             GlanceChipRow(chips, alarm, Modifier.padding(top = 8.dp, start = 16.dp, end = 16.dp))
-            val cards = remember(usageAccess, screenTime) { homeLayout.cards(usageAccess, screenTime) }
-            GlanceCards(cards, Modifier.padding(top = 24.dp, start = 16.dp, end = 16.dp))
+            // Keyed on time too, so the weather's "Updated 3h ago" ages with the clock.
+            val cards = remember(usageAccess, screenTime, settings, time) { homeLayout.cards(usageAccess, screenTime, settings) }
+            GlanceCards(cards, Modifier.padding(top = 24.dp, start = 16.dp, end = 16.dp), onSetCity = onSetCity)
         }
         Box(Modifier.align(Alignment.BottomCenter)) { favorites() }
     }

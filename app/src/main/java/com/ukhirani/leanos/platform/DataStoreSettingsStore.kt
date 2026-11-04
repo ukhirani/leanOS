@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -26,6 +27,9 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
             iconSize = prefs.enum(ICON_SIZE, defaults.iconSize),
             // Package names can't contain newlines, so one string keeps the order.
             favorites = prefs[FAVORITES]?.split('\n')?.filter { it.isNotEmpty() }.orEmpty(),
+            useFahrenheit = prefs[USE_FAHRENHEIT] ?: defaults.useFahrenheit,
+            weatherCity = prefs.weatherCity(),
+            weather = prefs.weather(),
         )
     }
 
@@ -41,6 +45,35 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
 
     override suspend fun setFavorites(packages: List<String>) {
         store.edit { it[FAVORITES] = packages.joinToString("\n") }
+    }
+
+    override suspend fun setUseFahrenheit(enabled: Boolean) {
+        store.edit { it[USE_FAHRENHEIT] = enabled }
+    }
+
+    // City and weather are stored as newline-joined fields; a city name never contains a newline.
+    override suspend fun setWeatherCity(city: City?) {
+        store.edit {
+            if (city == null) it.remove(WEATHER_CITY) else it[WEATHER_CITY] = "${city.name}\n${city.latitude}\n${city.longitude}"
+            it.remove(WEATHER)
+        }
+    }
+
+    override suspend fun setWeather(weather: CurrentWeather) {
+        store.edit { it[WEATHER] = "${weather.celsius}\n${weather.code}\n${weather.at.toEpochMilli()}" }
+    }
+
+    private fun Preferences.weatherCity(): City? = this[WEATHER_CITY]?.split('\n')?.let { f ->
+        val lat = f.getOrNull(1)?.toDoubleOrNull()
+        val lon = f.getOrNull(2)?.toDoubleOrNull()
+        if (lat == null || lon == null) null else City(f[0], lat, lon)
+    }
+
+    private fun Preferences.weather(): CurrentWeather? = this[WEATHER]?.split('\n')?.let { f ->
+        val celsius = f.getOrNull(0)?.toDoubleOrNull()
+        val code = f.getOrNull(1)?.toIntOrNull()
+        val at = f.getOrNull(2)?.toLongOrNull()
+        if (celsius == null || code == null || at == null) null else CurrentWeather(celsius, code, Instant.ofEpochMilli(at))
     }
 
     // Enums are stored by name; a name this version doesn't know reads as the default.
@@ -59,5 +92,8 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
         val BACKGROUND = stringPreferencesKey("background")
         val ICON_SIZE = stringPreferencesKey("icon_size")
         val FAVORITES = stringPreferencesKey("favorites")
+        val USE_FAHRENHEIT = booleanPreferencesKey("use_fahrenheit")
+        val WEATHER_CITY = stringPreferencesKey("weather_city")
+        val WEATHER = stringPreferencesKey("weather")
     }
 }
