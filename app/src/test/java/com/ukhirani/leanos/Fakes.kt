@@ -1,6 +1,8 @@
 package com.ukhirani.leanos
 
 import com.ukhirani.leanos.platform.ClockSource
+import com.ukhirani.leanos.platform.InstalledApp
+import com.ukhirani.leanos.platform.InstalledAppsSource
 import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.platform.SettingsStore
 import java.time.ZonedDateTime
@@ -21,4 +23,15 @@ class FakeSettingsStore(initial: Settings = Settings()) : SettingsStore {
     override suspend fun setUse24Hour(enabled: Boolean) {
         state.update { it.copy(use24Hour = enabled) }
     }
+}
+
+fun app(label: String, packageName: String = "pkg." + label.lowercase().replace(" ", "")) =
+    InstalledApp(packageName = packageName, activityName = "$packageName.Main", label = label)
+
+class FakeInstalledAppsSource(vararg initial: InstalledApp) : InstalledAppsSource {
+    private val state = MutableStateFlow(initial.toList())
+    override val apps: Flow<List<InstalledApp>> = state
+
+    fun install(app: InstalledApp) = state.update { it + app }
+    fun uninstall(packageName: String) = state.update { apps -> apps.filter { it.packageName != packageName } }
 }
