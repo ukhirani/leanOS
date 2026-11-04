@@ -1,6 +1,8 @@
 package com.ukhirani.leanos.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,18 +20,30 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ukhirani.leanos.platform.AlarmSource
+import com.ukhirani.leanos.platform.BatterySource
 import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.platform.SettingsStore
 import com.ukhirani.leanos.ui.ClockFontFamily
 import kotlinx.coroutines.delay
 
 @Composable
-fun HomeScreen(homeClock: HomeClock, settingsStore: SettingsStore) {
+fun HomeScreen(
+    homeClock: HomeClock,
+    settingsStore: SettingsStore,
+    homeLayout: HomeLayout,
+    alarmSource: AlarmSource,
+    batterySource: BatterySource,
+) {
     val settings by settingsStore.settings.collectAsState(initial = Settings())
+    val alarm by alarmSource.nextAlarm.collectAsState(initial = null)
+    val battery by batterySource.battery.collectAsState(initial = null)
+    val context = LocalContext.current
     var time by remember(settings) { mutableStateOf(homeClock.text(settings)) }
     LaunchedEffect(settings) {
         while (true) {
@@ -45,7 +59,15 @@ fun HomeScreen(homeClock: HomeClock, settingsStore: SettingsStore) {
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.35f))
             .safeDrawingPadding(),
     ) {
-        Clock(time, Modifier.align(Alignment.TopCenter).padding(top = 72.dp))
+        Column(Modifier.align(Alignment.TopCenter).padding(top = 72.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Clock(
+                time,
+                Modifier.clickable(onClickLabel = "Open alarms") { context.openAlarmApp(alarm) },
+            )
+            // Recomputed each minute with the clock, so the alarm countdown and date stay current.
+            val chips = remember(time, settings, alarm, battery) { homeLayout.chips(settings, alarm, battery) }
+            GlanceChipRow(chips, alarm, Modifier.padding(top = 8.dp, start = 16.dp, end = 16.dp))
+        }
     }
 }
 

@@ -1,0 +1,61 @@
+package com.ukhirani.leanos
+
+import com.ukhirani.leanos.home.GlanceChip
+import com.ukhirani.leanos.home.GlanceFormat
+import com.ukhirani.leanos.home.HomeLayout
+import com.ukhirani.leanos.platform.BatteryState
+import com.ukhirani.leanos.platform.NextAlarm
+import com.ukhirani.leanos.platform.Settings
+import java.time.ZonedDateTime
+import java.util.Locale
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class HomeLayoutTest {
+    private val clock = FakeClockSource("2026-11-04T22:47:30+01:00[Europe/Paris]")
+    private val layout = HomeLayout(GlanceFormat(clock, Locale.US))
+    private val alarms = FakeAlarmSource()
+    private val batteries = FakeBatterySource(BatteryState(level = 82, charging = true))
+
+    private suspend fun chips(settings: Settings = Settings()) =
+        layout.chips(settings, alarms.nextAlarm.first(), batteries.battery.first())
+
+    @Test
+    fun `chips show date, battery and next alarm in that order`() = runBlocking {
+        alarms.set(NextAlarm(ZonedDateTime.parse("2026-11-05T07:00:00+01:00[Europe/Paris]").toInstant()))
+        assertEquals(
+            listOf(
+                GlanceChip(GlanceChip.Kind.Date, "Wed, 4 Nov", "Wed, 4 Nov"),
+                GlanceChip(GlanceChip.Kind.Battery, "⚡ 82%", "Battery 82%, charging"),
+                GlanceChip(GlanceChip.Kind.Alarm, "⏰ 7:00 · in 8h 13m", "Next alarm 7:00 · in 8h 13m"),
+            ),
+            chips(),
+        )
+    }
+
+    @Test
+    fun `alarm chip is hidden when no alarm is set`() = runBlocking {
+        assertEquals(listOf(GlanceChip.Kind.Date, GlanceChip.Kind.Battery), chips().map { it.kind })
+    }
+
+    @Test
+    fun `alarm chip appears and goes as alarms are set and dismissed`() = runBlocking {
+        alarms.set(NextAlarm(ZonedDateTime.parse("2026-11-04T23:00:00+01:00[Europe/Paris]").toInstant()))
+        assertEquals("⏰ 23:00 · in 13m", chips().last().text)
+        alarms.set(null)
+        assertEquals(GlanceChip.Kind.Battery, chips().last().kind)
+    }
+
+    @Test
+    fun `battery chip is hidden until the battery has reported`() {
+        assertEquals(listOf(GlanceChip.Kind.Date), layout.chips(Settings(), null, null).map { it.kind })
+    }
+
+    @Test
+    fun `battery not charging is described plainly`() = runBlocking {
+        batteries.set(BatteryState(level = 15, charging = false))
+        assertEquals(GlanceChip(GlanceChip.Kind.Battery, "15%", "Battery 15%"), chips()[1])
+    }
+}
