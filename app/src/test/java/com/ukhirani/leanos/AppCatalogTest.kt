@@ -1,6 +1,8 @@
 package com.ukhirani.leanos
 
 import com.ukhirani.leanos.drawer.AppCatalog
+import com.ukhirani.leanos.drawer.FavoriteChange
+import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.platform.InstalledApp
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -11,11 +13,15 @@ class AppCatalogTest {
     private val source = FakeInstalledAppsSource(
         app("Spotify"), app("Maps"), app("calculator"), app("Google Play Store"), app("Clock"),
     )
-    private val catalog = AppCatalog(source)
+    private val settings = FakeSettingsStore()
+    private val catalog = AppCatalog(source, settings)
 
     private fun labels(apps: List<InstalledApp>) = apps.map { it.label }
     private fun drawer() = runBlocking { catalog.drawer.first() }
     private fun search(query: String) = labels(catalog.search(drawer(), query))
+    private fun favorites() = labels(runBlocking { catalog.favorites.first() })
+    private fun toggle(label: String) = runBlocking { catalog.toggleFavorite(drawer().first { it.label == label }) }
+    private fun stored() = runBlocking { settings.settings.first().favorites }
 
     @Test
     fun `drawer lists every launchable app alphabetically, ignoring case`() {
@@ -71,5 +77,56 @@ class AppCatalogTest {
     @Test
     fun `the top match is what Enter launches`() {
         assertEquals("Spotify", catalog.search(drawer(), "spo").first().label)
+    }
+
+    @Test
+    fun `favorites row keeps the order favorites were added in`() {
+        assertEquals(FavoriteChange.Added, toggle("Spotify"))
+        toggle("Clock")
+        toggle("Maps")
+        assertEquals(listOf("Spotify", "Clock", "Maps"), favorites())
+    }
+
+    @Test
+    fun `toggling a favorite again removes it`() {
+        toggle("Spotify")
+        toggle("Clock")
+        assertEquals(FavoriteChange.Removed, toggle("Spotify"))
+        assertEquals(listOf("Clock"), favorites())
+    }
+
+    @Test
+    fun `uninstalled favorites drop out of the row`() {
+        toggle("Spotify")
+        toggle("Maps")
+        source.uninstall("pkg.spotify")
+        assertEquals(listOf("Maps"), favorites())
+    }
+
+    @Test
+    fun `a seventh favorite is refused`() {
+        listOf("Spotify", "Maps", "calculator", "Google Play Store", "Clock").forEach { toggle(it) }
+        source.install(app("Camera"))
+        source.install(app("Phone"))
+        assertEquals(FavoriteChange.Added, toggle("Camera"))
+        assertEquals(FavoriteChange.LimitReached, toggle("Phone"))
+        assertEquals(listOf("Spotify", "Maps", "calculator", "Google Play Store", "Clock", "Camera"), favorites())
+    }
+
+    @Test
+    fun `uninstalled favorites free their slot`() {
+        val six = FakeSettingsStore(Settings(favorites = listOf("gone.1", "gone.2", "pkg.maps", "gone.3", "gone.4", "gone.5")))
+        val catalog = AppCatalog(source, six)
+        val spotify = drawer().first { it.label == "Spotify" }
+        assertEquals(FavoriteChange.Added, runBlocking { catalog.toggleFavorite(spotify) })
+        assertEquals(listOf("pkg.maps", "pkg.spotify"), runBlocking { six.settings.first().favorites })
+    }
+
+    @Test
+    fun `an app with several launcher activities shows once in the row`() {
+        source.install(InstalledApp("pkg.maps", "pkg.maps.Navigation", "Maps Navigation"))
+        toggle("Maps")
+        assertEquals(listOf("Maps"), favorites())
+        assertEquals(listOf("pkg.maps"), stored())
     }
 }

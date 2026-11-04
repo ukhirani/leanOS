@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
 import android.graphics.Bitmap
+import android.net.Uri
 import android.graphics.Canvas
 import android.os.Handler
 import android.os.Looper
@@ -21,7 +22,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 
 /** Installed apps from [LauncherApps], for the current user. LeanOS itself is left out. */
-class LauncherAppsSource(context: Context) : InstalledAppsSource {
+class LauncherAppsSource(private val context: Context) : InstalledAppsSource {
     private val launcherApps = context.getSystemService(LauncherApps::class.java)
     private val self = context.packageName
     private val user: UserHandle = Process.myUserHandle()
@@ -58,6 +59,17 @@ class LauncherAppsSource(context: Context) : InstalledAppsSource {
     fun launch(app: InstalledApp) {
         // An app uninstalled since the list was drawn just doesn't launch.
         runCatching { launcherApps.startMainActivity(component(app), user, null, null) }
+    }
+
+    /** Opens the system App info screen for [app]. */
+    fun openAppInfo(app: InstalledApp) {
+        runCatching { launcherApps.startAppDetailsActivity(component(app), user, null, null) }
+    }
+
+    /** Asks the system to uninstall [app]; the user confirms in the system dialog. */
+    fun uninstall(app: InstalledApp) {
+        val intent = Intent(Intent.ACTION_DELETE, Uri.fromParts("package", app.packageName, null))
+        runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
     }
 
     private fun component(app: InstalledApp) = ComponentName(app.packageName, app.activityName)

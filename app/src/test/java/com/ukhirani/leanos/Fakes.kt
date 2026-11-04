@@ -24,6 +24,10 @@ class FakeSettingsStore(initial: Settings = Settings()) : SettingsStore {
     override suspend fun setUse24Hour(enabled: Boolean) {
         state.update { it.copy(use24Hour = enabled) }
     }
+
+    override suspend fun setFavorites(packages: List<String>) {
+        state.update { it.copy(favorites = packages) }
+    }
 }
 
 class FakeFocusService(var running: Boolean = true) : FocusService {

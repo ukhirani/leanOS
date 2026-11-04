@@ -33,6 +33,7 @@ fun HomeScreen(
     settingsStore: SettingsStore,
     gestures: HomeGestures,
     onSwipeUp: () -> Unit = {},
+    favorites: @Composable () -> Unit = {},
 ) {
     val settings by settingsStore.settings.collectAsState(initial = Settings())
     var showFocusPrompt by remember { mutableStateOf(false) }
@@ -61,6 +62,7 @@ fun HomeScreen(
             .safeDrawingPadding(),
     ) {
         Clock(time, Modifier.align(Alignment.TopCenter).padding(top = 72.dp))
+        Box(Modifier.align(Alignment.BottomCenter)) { favorites() }
     }
 }
 

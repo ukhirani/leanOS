@@ -1,10 +1,7 @@
 package com.ukhirani.leanos.drawer
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,7 +11,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,7 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -41,8 +36,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.ukhirani.leanos.platform.InstalledApp
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * The app drawer: a search field, focused with the keyboard up, over the [apps] list.
@@ -53,6 +46,7 @@ fun AppDrawer(
     apps: List<InstalledApp>,
     catalog: AppCatalog,
     icon: (InstalledApp) -> ImageBitmap?,
+    onMenu: (InstalledApp) -> Unit,
     onLaunch: (InstalledApp) -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
@@ -90,28 +84,30 @@ fun AppDrawer(
         )
         LazyColumn(Modifier.fillMaxSize()) {
             items(results, key = { it.packageName + "/" + it.activityName }) { app ->
-                AppRow(app, icon, onLaunch)
+                AppRow(app, icon, onLaunch, onMenu)
             }
         }
     }
 }
 
 @Composable
-private fun AppRow(app: InstalledApp, icon: (InstalledApp) -> ImageBitmap?, onLaunch: (InstalledApp) -> Unit) {
-    val bitmap by produceState<ImageBitmap?>(null, app) { value = withContext(Dispatchers.IO) { icon(app) } }
+private fun AppRow(
+    app: InstalledApp,
+    icon: (InstalledApp) -> ImageBitmap?,
+    onLaunch: (InstalledApp) -> Unit,
+    onMenu: (InstalledApp) -> Unit,
+) {
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            // TalkBack reads the label; the click label says what activating it does.
-            .clickable(onClickLabel = "Open") { onLaunch(app) }
+            // TalkBack reads the label; the click labels say what activating it does.
+            .appPress(onClick = { onLaunch(app) }, onLongPress = { onMenu(app) })
             .padding(horizontal = 24.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Box(Modifier.size(48.dp)) {
-            bitmap?.let { Image(it, contentDescription = null, modifier = Modifier.fillMaxSize()) }
-        }
+        AppIcon(app, icon, 48.dp)
         Text(app.label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
         Spacer(Modifier.weight(1f))
     }
