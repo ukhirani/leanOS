@@ -26,7 +26,23 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
             iconSize = prefs.enum(ICON_SIZE, defaults.iconSize),
             // Package names can't contain newlines, so one string keeps the order.
             favorites = prefs[FAVORITES]?.split('\n')?.filter { it.isNotEmpty() }.orEmpty(),
+            dailyLimits = prefs.dailyLimits(),
         )
+    }
+
+    // One "package=minutes" line per limit.
+    private fun Preferences.dailyLimits(): Map<String, Int> =
+        this[DAILY_LIMITS].orEmpty().lines().mapNotNull { line ->
+            val (pkg, minutes) = line.split('=').takeIf { it.size == 2 } ?: return@mapNotNull null
+            minutes.toIntOrNull()?.let { pkg to it }
+        }.toMap()
+
+    override suspend fun setDailyLimit(packageName: String, minutes: Int?) {
+        store.edit { prefs ->
+            val limits = prefs.dailyLimits().toMutableMap()
+            if (minutes == null) limits.remove(packageName) else limits[packageName] = minutes
+            prefs[DAILY_LIMITS] = limits.entries.joinToString("\n") { "${it.key}=${it.value}" }
+        }
     }
 
     override suspend fun setUse24Hour(enabled: Boolean) {
@@ -59,5 +75,6 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
         val BACKGROUND = stringPreferencesKey("background")
         val ICON_SIZE = stringPreferencesKey("icon_size")
         val FAVORITES = stringPreferencesKey("favorites")
+        val DAILY_LIMITS = stringPreferencesKey("daily_limits")
     }
 }

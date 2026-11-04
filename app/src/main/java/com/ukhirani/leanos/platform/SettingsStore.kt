@@ -11,6 +11,8 @@ data class Settings(
     val iconSize: IconSize = IconSize.MEDIUM,
     /** Favorite apps' package names, in row order (at most 6). */
     val favorites: List<String> = emptyList(),
+    /** Daily limits: package name to minutes per day. */
+    val dailyLimits: Map<String, Int> = emptyMap(),
 )
 
 /** Clock style presets: each one is a set of Google Sans Flex axes, never a different font. */
@@ -44,4 +46,7 @@ interface SettingsStore {
     suspend fun setBackground(mode: BackgroundMode)
     suspend fun setIconSize(size: IconSize)
     suspend fun setFavorites(packages: List<String>)
+
+    /** Sets [packageName]'s daily limit in minutes; null removes it. */
+    suspend fun setDailyLimit(packageName: String, minutes: Int?)
 }

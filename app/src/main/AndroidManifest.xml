@@ -40,6 +40,15 @@
             </intent-filter>
         </activity>
 
+        <!-- The Block screen: its own task, never in recents, gone once left. -->
+        <activity
+            android:name=".BlockActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:noHistory="true" />
+
         <service
             android:name=".platform.FocusAccessibilityService"
             android:exported="true"

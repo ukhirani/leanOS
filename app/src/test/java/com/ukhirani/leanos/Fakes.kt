@@ -64,6 +64,10 @@ class FakeSettingsStore(initial: Settings = Settings()) : SettingsStore {
     override suspend fun setFavorites(packages: List<String>) {
         state.update { it.copy(favorites = packages) }
     }
+
+    override suspend fun setDailyLimit(packageName: String, minutes: Int?) = state.update {
+        it.copy(dailyLimits = if (minutes == null) it.dailyLimits - packageName else it.dailyLimits + (packageName to minutes))
+    }
 }
 
 class FakeFocusService(var running: Boolean = true) : FocusService {

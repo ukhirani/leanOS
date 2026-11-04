@@ -48,6 +48,8 @@ import com.ukhirani.leanos.platform.LauncherAppsSource
 import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.platform.SystemClockSource
 import com.ukhirani.leanos.settings.AboutScreen
+import com.ukhirani.leanos.settings.LimitDialog
+import com.ukhirani.leanos.settings.LimitsScreen
 import com.ukhirani.leanos.settings.SettingsScreen
 import com.ukhirani.leanos.ui.LeanTheme
 import com.ukhirani.leanos.usage.ScreenTime
@@ -55,7 +57,7 @@ import com.ukhirani.leanos.usage.ScreenTimeToday
 import kotlin.concurrent.thread
 
 /** Destinations layered over home; null means home itself. */
-private enum class SettingsPage { Settings, About }
+private enum class SettingsPage { Settings, About, Limits }
 
 class HomeActivity : ComponentActivity() {
     // Wiring lives here: real platform sources in, logic and UI out.
@@ -75,6 +77,7 @@ class HomeActivity : ComponentActivity() {
     private val screenTime by lazy { ScreenTime(usageSource, SystemClockSource, packageName) }
     private var usageAccess by mutableStateOf(false)
     private var screenTimeToday by mutableStateOf<ScreenTimeToday?>(null)
+    private var limitFor by mutableStateOf<InstalledApp?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -116,6 +119,18 @@ class HomeActivity : ComponentActivity() {
                             settingsStore,
                             onBack = { settingsPage = null },
                             onOpenAbout = { settingsPage = SettingsPage.About },
+                            onOpenLimits = { settingsPage = SettingsPage.Limits },
+                        )
+                    }
+                    SettingsPage.Limits -> {
+                        BackHandler { settingsPage = SettingsPage.Settings }
+                        val installed by installedApps.apps.collectAsState(initial = emptyList())
+                        LimitsScreen(
+                            settingsStore,
+                            labelOf = { pkg -> installed.firstOrNull { it.packageName == pkg }?.label ?: pkg },
+                            usage = screenTimeToday,
+                            durationText = GlanceFormat(SystemClockSource)::durationText,
+                            onBack = { settingsPage = SettingsPage.Settings },
                         )
                     }
                     SettingsPage.About -> {
@@ -127,6 +142,11 @@ class HomeActivity : ComponentActivity() {
                 menuFor?.let { app ->
                     val isFavorite = favorites.any { it.packageName == app.packageName }
                     AppActionsSheet(app, appActions(app, isFavorite, scope, snackbar)) { menuFor = null }
+                }
+                limitFor?.let { app ->
+                    LimitDialog(app.label, settings.dailyLimits[app.packageName], onDismiss = { limitFor = null }) { minutes ->
+                        scope.launch { settingsStore.setDailyLimit(app.packageName, minutes) }
+                    }
                 }
                 SnackbarHost(snackbar, Modifier.fillMaxSize().safeDrawingPadding().wrapContentHeight(Alignment.Bottom))
             }
@@ -142,6 +162,7 @@ class HomeActivity : ComponentActivity() {
                 }
             }
         },
+        AppAction(getString(R.string.limit_set)) { limitFor = app },
         AppAction("App info") { installedApps.openAppInfo(app) },
         AppAction("Uninstall") { installedApps.uninstall(app) },
     )

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="limits_title">Daily limits</string>
+    <string name="limits_empty">No daily limits yet. Long-press an app and choose Set daily limit.</string>
+    <string name="limits_usage">%1$s of %2$s today</string>
+    <string name="limit_set">Set daily limit</string>
+    <string name="limit_dialog_title">Daily limit for %1$s</string>
+    <string name="limit_dialog_minutes">Minutes per day</string>
+    <string name="limit_save">Save</string>
+    <string name="limit_remove">Remove</string>
+    <string name="limit_cancel">Cancel</string>
+    <string name="block_used_today">Used %1$s today. Its daily limit is up.</string>
+    <string name="block_unlocks">Unlocks at midnight</string>
+    <string name="block_go_home">Go home</string>
+</resources>

@@ -77,6 +77,19 @@ class DataStoreSettingsStoreTest {
     }
 
     @Test
+    fun `daily limits can be set, changed and removed, and survive a restart`() = runBlocking {
+        val file = File(tmp.root, "d.preferences_pb")
+        val first = DataStoreSettingsStore(dataStore(file))
+        first.setDailyLimit("video", 30)
+        first.setDailyLimit("chat", 15)
+        first.setDailyLimit("video", 45)
+        first.setDailyLimit("chat", null)
+        scopes.forEach { it.cancel() }
+
+        assertEquals(mapOf("video" to 45), DataStoreSettingsStore(dataStore(file)).settings.first().dailyLimits)
+    }
+
+    @Test
     fun `an unknown stored value falls back to the default instead of crashing`() = runBlocking {
         val ds = dataStore(File(tmp.root, "c.preferences_pb"))
         ds.edit { it[stringPreferencesKey("clock_style")] = "RETIRED_PRESET" }
