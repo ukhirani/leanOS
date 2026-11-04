@@ -39,6 +39,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ukhirani.leanos.platform.InstalledApp
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +54,7 @@ fun AppDrawer(
     apps: List<InstalledApp>,
     catalog: AppCatalog,
     icon: (InstalledApp) -> ImageBitmap?,
+    iconSize: Dp = 48.dp,
     onLaunch: (InstalledApp) -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
@@ -90,14 +92,14 @@ fun AppDrawer(
         )
         LazyColumn(Modifier.fillMaxSize()) {
             items(results, key = { it.packageName + "/" + it.activityName }) { app ->
-                AppRow(app, icon, onLaunch)
+                AppRow(app, icon, iconSize, onLaunch)
             }
         }
     }
 }
 
 @Composable
-private fun AppRow(app: InstalledApp, icon: (InstalledApp) -> ImageBitmap?, onLaunch: (InstalledApp) -> Unit) {
+private fun AppRow(app: InstalledApp, icon: (InstalledApp) -> ImageBitmap?, iconSize: Dp, onLaunch: (InstalledApp) -> Unit) {
     val bitmap by produceState<ImageBitmap?>(null, app) { value = withContext(Dispatchers.IO) { icon(app) } }
     Row(
         Modifier
@@ -109,7 +111,7 @@ private fun AppRow(app: InstalledApp, icon: (InstalledApp) -> ImageBitmap?, onLa
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Box(Modifier.size(48.dp)) {
+        Box(Modifier.size(iconSize)) {
             bitmap?.let { Image(it, contentDescription = null, modifier = Modifier.fillMaxSize()) }
         }
         Text(app.label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
@@ -26,10 +27,12 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ukhirani.leanos.platform.AlarmSource
+import com.ukhirani.leanos.platform.BackgroundMode
 import com.ukhirani.leanos.platform.BatterySource
+import com.ukhirani.leanos.platform.ClockStyle
 import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.platform.SettingsStore
-import com.ukhirani.leanos.ui.ClockFontFamily
+import com.ukhirani.leanos.ui.rememberClockFontFamily
 import com.ukhirani.leanos.usage.ScreenTimeToday
 import kotlinx.coroutines.delay
 
@@ -42,6 +45,7 @@ fun HomeScreen(
     alarmSource: AlarmSource,
     batterySource: BatterySource,
     onSwipeUp: () -> Unit = {},
+    onOpenSettings: (() -> Unit)? = null,
     usageAccess: Boolean = false,
     screenTime: ScreenTimeToday? = null,
 ) {
@@ -68,15 +72,22 @@ fun HomeScreen(
     Box(
         Modifier
             .fillMaxSize()
-            // Light scrim over the wallpaper so text keeps its contrast.
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.35f))
+            // Light scrim over the wallpaper so text keeps its contrast, or a solid Material You fill.
+            .background(
+                when (settings.background) {
+                    BackgroundMode.WALLPAPER -> MaterialTheme.colorScheme.surface.copy(alpha = 0.35f)
+                    BackgroundMode.SOLID -> MaterialTheme.colorScheme.surface
+                },
+            )
             // Swipe up (drawer) and long-press (settings) plug into this same modifier.
-            .homeGestures(onSwipeDown = onSwipeDown, onDoubleTap = onDoubleTap, onSwipeUp = onSwipeUp)
+            .homeGestures(onSwipeDown = onSwipeDown, onDoubleTap = onDoubleTap, onSwipeUp = onSwipeUp, onLongPress = onOpenSettings)
             .safeDrawingPadding(),
     ) {
+        ClockGlow(Modifier.align(Alignment.TopCenter).padding(top = 16.dp).fillMaxWidth().height(240.dp))
         Column(Modifier.align(Alignment.TopCenter).padding(top = 72.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Clock(
                 time,
+                settings.clockStyle,
                 Modifier.clickable(onClickLabel = "Open alarms") { context.openAlarmApp(alarm) },
             )
             // Recomputed each minute with the clock, so the alarm countdown and date stay current.
@@ -89,7 +100,7 @@ fun HomeScreen(
 }
 
 @Composable
-private fun Clock(time: String, modifier: Modifier = Modifier) {
+private fun Clock(time: String, style: ClockStyle, modifier: Modifier = Modifier) {
     BoxWithConstraints(modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         // Sized from the screen width in dp, not sp, so large system text can't make it clip.
         val size = with(LocalDensity.current) { (maxWidth / 3.4f).toSp() }
@@ -97,7 +108,7 @@ private fun Clock(time: String, modifier: Modifier = Modifier) {
             text = time,
             modifier = Modifier.fillMaxWidth(),
             style = TextStyle(
-                fontFamily = ClockFontFamily,
+                fontFamily = rememberClockFontFamily(style),
                 fontSize = size,
                 lineHeight = size,
                 textAlign = TextAlign.Center,
