@@ -3,7 +3,6 @@ package com.ukhirani.leanos.drawer
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,22 +37,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.ukhirani.leanos.platform.InstalledApp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
-/** Calls [onSwipeUp] when a vertical drag ends having moved up far enough. */
-fun Modifier.onSwipeUp(onSwipeUp: () -> Unit): Modifier = pointerInput(Unit) {
-    var travelled = 0f
-    detectVerticalDragGestures(
-        onDragStart = { travelled = 0f },
-        onDragEnd = { if (travelled < -64.dp.toPx()) onSwipeUp() },
-    ) { _, dy -> travelled += dy }
-}
 
 /**
  * The app drawer: a search field, focused with the keyboard up, over the [apps] list.

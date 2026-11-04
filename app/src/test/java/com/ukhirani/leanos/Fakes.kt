@@ -1,6 +1,7 @@
 package com.ukhirani.leanos
 
 import com.ukhirani.leanos.platform.ClockSource
+import com.ukhirani.leanos.platform.FocusService
 import com.ukhirani.leanos.platform.InstalledApp
 import com.ukhirani.leanos.platform.InstalledAppsSource
 import com.ukhirani.leanos.platform.Settings
@@ -22,6 +23,21 @@ class FakeSettingsStore(initial: Settings = Settings()) : SettingsStore {
 
     override suspend fun setUse24Hour(enabled: Boolean) {
         state.update { it.copy(use24Hour = enabled) }
+    }
+}
+
+class FakeFocusService(var running: Boolean = true) : FocusService {
+    var refuseActions = false
+    val performed = mutableListOf<String>()
+    override val foregroundPackage = MutableStateFlow<String?>(null)
+    override fun isRunning() = running
+    override fun openNotifications() = perform("notifications")
+    override fun lockScreen() = perform("lock")
+
+    private fun perform(action: String): Boolean {
+        if (!running || refuseActions) return false
+        performed += action
+        return true
     }
 }
 

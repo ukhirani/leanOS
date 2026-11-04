@@ -11,18 +11,16 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import com.ukhirani.leanos.drawer.AppCatalog
 import com.ukhirani.leanos.drawer.AppDrawer
-import com.ukhirani.leanos.drawer.onSwipeUp
 import com.ukhirani.leanos.home.HomeClock
+import com.ukhirani.leanos.home.HomeGestures
 import com.ukhirani.leanos.home.HomeScreen
+import com.ukhirani.leanos.platform.FocusAccessibilityService
 import com.ukhirani.leanos.platform.DataStoreSettingsStore
 import com.ukhirani.leanos.platform.LauncherAppsSource
 import com.ukhirani.leanos.platform.SystemClockSource
@@ -32,9 +30,11 @@ class HomeActivity : ComponentActivity() {
     // Wiring lives here: real platform sources in, logic and UI out.
     private val settingsStore by lazy { DataStoreSettingsStore(this) }
     private val homeClock = HomeClock(SystemClockSource)
+    private val homeGestures = HomeGestures(FocusAccessibilityService)
     private val installedApps by lazy { LauncherAppsSource(this) }
     private val appCatalog by lazy { AppCatalog(installedApps) }
     private var drawerOpen by mutableStateOf(false)
+    private val openDrawer = { drawerOpen = true }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -43,9 +43,7 @@ class HomeActivity : ComponentActivity() {
             LeanTheme {
                 // Back on home does nothing: a launcher has nowhere to go back to.
                 BackHandler {}
-                Box(Modifier.fillMaxSize().onSwipeUp { drawerOpen = true }) {
-                    HomeScreen(homeClock, settingsStore)
-                }
+                HomeScreen(homeClock, settingsStore, homeGestures, onSwipeUp = openDrawer)
                 val apps by appCatalog.drawer.collectAsState(initial = emptyList())
                 AnimatedVisibility(
                     visible = drawerOpen,
