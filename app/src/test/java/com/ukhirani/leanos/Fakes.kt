@@ -66,6 +66,7 @@ class FakeSettingsStore(initial: Settings = Settings()) : SettingsStore {
     }
 
     override suspend fun setGrayscaleIcons(enabled: Boolean) = state.update { it.copy(grayscaleIcons = enabled) }
+    override suspend fun setHidden(packages: Set<String>) = state.update { it.copy(hidden = packages) }
 }
 
 class FakeFocusService(var running: Boolean = true) : FocusService {

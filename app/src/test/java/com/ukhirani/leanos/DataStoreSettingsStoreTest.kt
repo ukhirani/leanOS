@@ -14,7 +14,9 @@ import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -62,7 +64,7 @@ class DataStoreSettingsStoreTest {
         first.setBackground(BackgroundMode.SOLID)
         first.setIconSize(IconSize.LARGE)
         first.setGrayscaleIcons(false)
-        scopes.forEach { it.cancel() }
+        scopes.forEach { it.coroutineContext[Job]!!.cancelAndJoin() }
 
         val reopened = DataStoreSettingsStore(dataStore(file))
         assertEquals(
@@ -84,5 +86,13 @@ class DataStoreSettingsStoreTest {
         val ds = dataStore(File(tmp.root, "c.preferences_pb"))
         ds.edit { it[stringPreferencesKey("clock_style")] = "RETIRED_PRESET" }
         assertEquals(ClockStyle.CHUNKY, DataStoreSettingsStore(ds).settings.first().clockStyle)
+    }
+
+    @Test
+    fun `hidden apps survive a restart`() = runBlocking {
+        val file = File(tmp.root, "d.preferences_pb")
+        DataStoreSettingsStore(dataStore(file)).setHidden(setOf("pkg.a", "pkg.b"))
+        scopes.forEach { it.coroutineContext[Job]!!.cancelAndJoin() }
+        assertEquals(setOf("pkg.a", "pkg.b"), DataStoreSettingsStore(dataStore(file)).settings.first().hidden)
     }
 }

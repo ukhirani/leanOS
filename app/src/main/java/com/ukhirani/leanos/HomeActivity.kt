@@ -50,6 +50,7 @@ import com.ukhirani.leanos.platform.LauncherAppsSource
 import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.platform.SystemClockSource
 import com.ukhirani.leanos.settings.AboutScreen
+import com.ukhirani.leanos.settings.HiddenAppsScreen
 import com.ukhirani.leanos.settings.SettingsScreen
 import com.ukhirani.leanos.ui.LeanTheme
 import com.ukhirani.leanos.usage.ScreenTime
@@ -57,7 +58,7 @@ import com.ukhirani.leanos.usage.ScreenTimeToday
 import kotlin.concurrent.thread
 
 /** Destinations layered over home; null means home itself. */
-private enum class SettingsPage { Settings, About }
+private enum class SettingsPage { Settings, Hidden, About }
 
 class HomeActivity : ComponentActivity() {
     // Wiring lives here: real platform sources in, logic and UI out.
@@ -117,7 +118,18 @@ class HomeActivity : ComponentActivity() {
                         SettingsScreen(
                             settingsStore,
                             onBack = { settingsPage = null },
+                            onOpenHidden = { settingsPage = SettingsPage.Hidden },
                             onOpenAbout = { settingsPage = SettingsPage.About },
+                        )
+                    }
+                    SettingsPage.Hidden -> {
+                        BackHandler { settingsPage = SettingsPage.Settings }
+                        val hidden by appCatalog.hidden.collectAsState(initial = emptyList())
+                        HiddenAppsScreen(
+                            hidden, installedApps::icon, iconSize,
+                            onOpen = installedApps::launch,
+                            onUnhide = { app -> scope.launch { appCatalog.setHidden(app, false) } },
+                            onBack = { settingsPage = SettingsPage.Settings },
                         )
                     }
                     SettingsPage.About -> {
@@ -144,6 +156,7 @@ class HomeActivity : ComponentActivity() {
                 }
             }
         },
+        AppAction("Hide") { scope.launch { appCatalog.setHidden(app, true) } },
         AppAction("App info") { installedApps.openAppInfo(app) },
         AppAction("Uninstall") { installedApps.uninstall(app) },
     )

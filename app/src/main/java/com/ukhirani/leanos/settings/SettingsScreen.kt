@@ -42,7 +42,7 @@ import kotlinx.coroutines.launch
 
 /** LeanOS settings: the look. Every change is written to the store and applies live. */
 @Composable
-fun SettingsScreen(settingsStore: SettingsStore, onBack: () -> Unit, onOpenAbout: () -> Unit) {
+fun SettingsScreen(settingsStore: SettingsStore, onBack: () -> Unit, onOpenHidden: () -> Unit, onOpenAbout: () -> Unit) {
     val settings by settingsStore.settings.collectAsState(initial = Settings())
     val scope = rememberCoroutineScope()
     fun save(block: suspend SettingsStore.() -> Unit) { scope.launch { settingsStore.block() } }
@@ -101,6 +101,10 @@ fun SettingsScreen(settingsStore: SettingsStore, onBack: () -> Unit, onOpenAbout
                 trailingContent = {
                     Switch(checked = settings.grayscaleIcons, onCheckedChange = { save { setGrayscaleIcons(it) } })
                 },
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.hidden_apps_title)) },
+                modifier = Modifier.clickable(onClick = onOpenHidden),
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.about_title)) },

@@ -129,4 +129,45 @@ class AppCatalogTest {
         assertEquals(listOf("Maps"), favorites())
         assertEquals(listOf("pkg.maps"), stored())
     }
+
+    private fun hide(label: String, hidden: Boolean = true) =
+        runBlocking { catalog.setHidden(source.apps.first().first { it.label == label }, hidden) }
+
+    @Test
+    fun `a hidden app leaves the drawer`() {
+        hide("Maps")
+        assertEquals(listOf("calculator", "Clock", "Google Play Store", "Spotify"), labels(drawer()))
+    }
+
+    @Test
+    fun `a hidden app never matches a search`() {
+        hide("Spotify")
+        assertEquals(emptyList<String>(), search("spo"))
+    }
+
+    @Test
+    fun `hiding a favorite removes it from the row and frees its slot`() {
+        toggle("Spotify")
+        toggle("Maps")
+        hide("Spotify")
+        assertEquals(listOf("Maps"), favorites())
+        assertEquals(listOf("pkg.maps"), stored())
+    }
+
+    @Test
+    fun `an unhidden app returns to the drawer`() {
+        hide("Maps")
+        hide("Maps", hidden = false)
+        assertEquals(listOf("calculator", "Clock", "Google Play Store", "Maps", "Spotify"), labels(drawer()))
+    }
+
+    @Test
+    fun `the hidden list shows installed hidden apps alphabetically`() {
+        hide("Spotify")
+        hide("Clock")
+        source.uninstall("pkg.clock")
+        assertEquals(listOf("Spotify"), labels(runBlocking { catalog.hidden.first() }))
+        hide("Maps")
+        assertEquals(listOf("Maps", "Spotify"), labels(runBlocking { catalog.hidden.first() }))
+    }
 }
