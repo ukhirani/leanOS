@@ -27,10 +27,13 @@ import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -79,12 +82,18 @@ fun Modifier.appPress(onClick: () -> Unit, onLongPress: () -> Unit): Modifier = 
         )
 }
 
-/** [app]'s icon, loaded off the main thread. */
+/** Whether [AppIcon]s draw in grayscale; provided once from the settings at the root. */
+val LocalGrayscaleIcons = staticCompositionLocalOf { true }
+
+private val grayscale = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
+
+/** [app]'s icon, loaded off the main thread. Grayscale is a draw-time filter, not a new bitmap. */
 @Composable
 fun AppIcon(app: InstalledApp, icon: (InstalledApp) -> ImageBitmap?, size: Dp) {
     val bitmap by produceState<ImageBitmap?>(null, app) { value = withContext(Dispatchers.IO) { icon(app) } }
+    val filter = if (LocalGrayscaleIcons.current) grayscale else null
     Box(Modifier.size(size)) {
-        bitmap?.let { Image(it, contentDescription = null, modifier = Modifier.fillMaxSize()) }
+        bitmap?.let { Image(it, contentDescription = null, modifier = Modifier.fillMaxSize(), colorFilter = filter) }
     }
 }
 

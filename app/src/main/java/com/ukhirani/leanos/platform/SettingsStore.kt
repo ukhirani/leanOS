@@ -11,6 +11,10 @@ data class Settings(
     val iconSize: IconSize = IconSize.MEDIUM,
     /** Favorite apps' package names, in row order (at most 6). */
     val favorites: List<String> = emptyList(),
+    /** App icons drawn in grayscale (less eye candy, less pull to open apps). */
+    val grayscaleIcons: Boolean = true,
+    /** Hidden apps' package names: kept out of the drawer, search and favorites. */
+    val hidden: Set<String> = emptySet(),
 )
 
 /** Clock style presets: each one is a set of Google Sans Flex axes, never a different font. */
@@ -44,4 +48,6 @@ interface SettingsStore {
     suspend fun setBackground(mode: BackgroundMode)
     suspend fun setIconSize(size: IconSize)
     suspend fun setFavorites(packages: List<String>)
+    suspend fun setGrayscaleIcons(enabled: Boolean)
+    suspend fun setHidden(packages: Set<String>)
 }
