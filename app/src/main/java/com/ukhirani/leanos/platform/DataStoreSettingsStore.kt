@@ -26,6 +26,7 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
             iconSize = prefs.enum(ICON_SIZE, defaults.iconSize),
             // Package names can't contain newlines, so one string keeps the order.
             favorites = prefs[FAVORITES]?.split('\n')?.filter { it.isNotEmpty() }.orEmpty(),
+            grayscaleIcons = prefs[GRAYSCALE_ICONS] ?: defaults.grayscaleIcons,
         )
     }
 
@@ -41,6 +42,10 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
 
     override suspend fun setFavorites(packages: List<String>) {
         store.edit { it[FAVORITES] = packages.joinToString("\n") }
+    }
+
+    override suspend fun setGrayscaleIcons(enabled: Boolean) {
+        store.edit { it[GRAYSCALE_ICONS] = enabled }
     }
 
     // Enums are stored by name; a name this version doesn't know reads as the default.
@@ -59,5 +64,6 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
         val BACKGROUND = stringPreferencesKey("background")
         val ICON_SIZE = stringPreferencesKey("icon_size")
         val FAVORITES = stringPreferencesKey("favorites")
+        val GRAYSCALE_ICONS = booleanPreferencesKey("grayscale_icons")
     }
 }

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -25,6 +26,7 @@ import com.ukhirani.leanos.drawer.AppAction
 import com.ukhirani.leanos.drawer.AppActionsSheet
 import com.ukhirani.leanos.drawer.FavoriteChange
 import com.ukhirani.leanos.drawer.FavoritesRow
+import com.ukhirani.leanos.drawer.LocalGrayscaleIcons
 import com.ukhirani.leanos.platform.InstalledApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -73,7 +75,7 @@ class HomeActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             val settings by settingsStore.settings.collectAsState(initial = Settings())
-            LeanTheme(settings) {
+            LeanTheme(settings) { CompositionLocalProvider(LocalGrayscaleIcons provides settings.grayscaleIcons) {
                 // Back on home does nothing: a launcher has nowhere to go back to.
                 BackHandler {}
                 val scope = rememberCoroutineScope()
@@ -120,7 +122,7 @@ class HomeActivity : ComponentActivity() {
                     AppActionsSheet(app, appActions(app, isFavorite, scope, snackbar)) { menuFor = null }
                 }
                 SnackbarHost(snackbar, Modifier.fillMaxSize().safeDrawingPadding().wrapContentHeight(Alignment.Bottom))
-            }
+            } }
         }
     }
 

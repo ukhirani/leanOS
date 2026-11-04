@@ -45,6 +45,7 @@ class DataStoreSettingsStoreTest {
                 accent = Accent.BLUE,
                 background = BackgroundMode.WALLPAPER,
                 iconSize = IconSize.MEDIUM,
+                grayscaleIcons = true,
             ),
             store.settings.first(),
         )
@@ -60,6 +61,7 @@ class DataStoreSettingsStoreTest {
         first.setAccent(Accent.ROSE)
         first.setBackground(BackgroundMode.SOLID)
         first.setIconSize(IconSize.LARGE)
+        first.setGrayscaleIcons(false)
         scopes.forEach { it.cancel() }
 
         val reopened = DataStoreSettingsStore(dataStore(file))
@@ -71,6 +73,7 @@ class DataStoreSettingsStoreTest {
                 accent = Accent.ROSE,
                 background = BackgroundMode.SOLID,
                 iconSize = IconSize.LARGE,
+                grayscaleIcons = false,
             ),
             reopened.settings.first(),
         )

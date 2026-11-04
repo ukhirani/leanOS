@@ -97,6 +97,12 @@ fun SettingsScreen(settingsStore: SettingsStore, onBack: () -> Unit, onOpenAbout
                 } },
             ) { save { setIconSize(it) } }
             ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_grayscale_icons)) },
+                trailingContent = {
+                    Switch(checked = settings.grayscaleIcons, onCheckedChange = { save { setGrayscaleIcons(it) } })
+                },
+            )
+            ListItem(
                 headlineContent = { Text(stringResource(R.string.about_title)) },
                 modifier = Modifier.clickable(onClick = onOpenAbout),
             )
