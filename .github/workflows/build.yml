@@ -1,0 +1,49 @@
+name: Build
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest
+
+      - name: Signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.LEANOS_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/leanos.jks"
+            echo "LEANOS_KEYSTORE_FILE=$RUNNER_TEMP/leanos.jks" >> "$GITHUB_ENV"
+            echo "Release APK signed with the LeanOS release key." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::LEANOS_KEYSTORE_B64 is not set; signing with the debug key."
+            echo "Signing secrets are missing, so this APK is **debug-signed**. It will not install over a release-signed LeanOS. See README → Release signing." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Release APK
+        env:
+          LEANOS_KEYSTORE_PASSWORD: ${{ secrets.LEANOS_KEYSTORE_PASSWORD }}
+          LEANOS_KEY_ALIAS: ${{ secrets.LEANOS_KEY_ALIAS }}
+          LEANOS_KEY_PASSWORD: ${{ secrets.LEANOS_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LeanOS-${{ github.sha }}
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
