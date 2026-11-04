@@ -50,8 +50,18 @@ class WeatherCardTest {
     }
 
     @Test
-    fun `weather comes after screen time`() {
-        val cards = layout.cards(usageAccess = true, screenTime = ScreenTimeToday(Duration.ZERO, emptyList()), settings = Settings())
-        assertEquals(listOf(GlanceCard.ScreenTime::class, GlanceCard.Enable::class), cards.map { it::class })
+    fun `weather sits between screen time and media`() {
+        val cards = layout.cards(
+            usageAccess = true, screenTime = ScreenTimeToday(Duration.ZERO, emptyList()),
+            mediaAccess = false, settings = Settings(),
+        )
+        assertEquals(
+            listOf(
+                GlanceCard.ScreenTime::class to null,
+                GlanceCard.Enable::class to GlanceCard.Feature.Weather,
+                GlanceCard.Enable::class to GlanceCard.Feature.Media,
+            ),
+            cards.map { it::class to (it as? GlanceCard.Enable)?.feature },
+        )
     }
 }

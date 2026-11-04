@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -25,6 +26,7 @@ import com.ukhirani.leanos.drawer.AppAction
 import com.ukhirani.leanos.drawer.AppActionsSheet
 import com.ukhirani.leanos.drawer.FavoriteChange
 import com.ukhirani.leanos.drawer.FavoritesRow
+import com.ukhirani.leanos.drawer.LocalGrayscaleIcons
 import com.ukhirani.leanos.platform.InstalledApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -41,6 +43,7 @@ import com.ukhirani.leanos.home.HomeLayout
 import com.ukhirani.leanos.home.HomeScreen
 import com.ukhirani.leanos.platform.AndroidAlarmSource
 import com.ukhirani.leanos.platform.AndroidBatterySource
+import com.ukhirani.leanos.platform.AndroidMediaSource
 import com.ukhirani.leanos.platform.AndroidUsageSource
 import com.ukhirani.leanos.platform.FocusAccessibilityService
 import com.ukhirani.leanos.platform.DataStoreSettingsStore
@@ -48,6 +51,7 @@ import com.ukhirani.leanos.platform.LauncherAppsSource
 import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.platform.SystemClockSource
 import com.ukhirani.leanos.settings.AboutScreen
+import com.ukhirani.leanos.settings.HiddenAppsScreen
 import com.ukhirani.leanos.settings.SettingsScreen
 import com.ukhirani.leanos.ui.LeanTheme
 import com.ukhirani.leanos.usage.ScreenTime
@@ -56,7 +60,7 @@ import kotlin.concurrent.thread
 import androidx.lifecycle.lifecycleScope
 
 /** Destinations layered over home; null means home itself. */
-private enum class SettingsPage { Settings, About, WeatherCity }
+private enum class SettingsPage { Settings, Hidden, About, WeatherCity }
 
 class HomeActivity : ComponentActivity() {
     // Wiring lives here: real platform sources in, logic and UI out.
@@ -92,12 +96,15 @@ class HomeActivity : ComponentActivity() {
         }
     }
 
+    private val mediaSource by lazy { AndroidMediaSource(this) }
+    private var mediaAccess by mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
             val settings by settingsStore.settings.collectAsState(initial = Settings())
-            LeanTheme(settings) {
+            LeanTheme(settings) { CompositionLocalProvider(LocalGrayscaleIcons provides settings.grayscaleIcons) {
                 // Back on home does nothing: a launcher has nowhere to go back to.
                 BackHandler {}
                 val scope = rememberCoroutineScope()
@@ -111,6 +118,7 @@ class HomeActivity : ComponentActivity() {
                     onSwipeUp = openDrawer, onOpenSettings = openSettings,
                     usageAccess = usageAccess, screenTime = screenTimeToday,
                     onSetCity = { settingsPage = SettingsPage.WeatherCity },
+                    mediaSource = mediaSource, mediaAccess = mediaAccess,
                 ) {
                     FavoritesRow(favorites, installedApps::icon, installedApps::launch, showMenu, iconSize)
                 }
@@ -132,6 +140,7 @@ class HomeActivity : ComponentActivity() {
                         SettingsScreen(
                             settingsStore,
                             onBack = { settingsPage = null },
+                            onOpenHidden = { settingsPage = SettingsPage.Hidden },
                             onOpenAbout = { settingsPage = SettingsPage.About },
                             onOpenWeatherCity = { settingsPage = SettingsPage.WeatherCity },
                         )
@@ -147,6 +156,16 @@ class HomeActivity : ComponentActivity() {
                             onBack = { settingsPage = SettingsPage.Settings },
                         )
                     }
+                    SettingsPage.Hidden -> {
+                        BackHandler { settingsPage = SettingsPage.Settings }
+                        val hidden by appCatalog.hidden.collectAsState(initial = emptyList())
+                        HiddenAppsScreen(
+                            hidden, installedApps::icon, iconSize,
+                            onOpen = installedApps::launch,
+                            onUnhide = { app -> scope.launch { appCatalog.setHidden(app, false) } },
+                            onBack = { settingsPage = SettingsPage.Settings },
+                        )
+                    }
                     SettingsPage.About -> {
                         BackHandler { settingsPage = SettingsPage.Settings }
                         AboutScreen(onBack = { settingsPage = SettingsPage.Settings })
@@ -158,7 +177,7 @@ class HomeActivity : ComponentActivity() {
                     AppActionsSheet(app, appActions(app, isFavorite, scope, snackbar)) { menuFor = null }
                 }
                 SnackbarHost(snackbar, Modifier.fillMaxSize().safeDrawingPadding().wrapContentHeight(Alignment.Bottom))
-            }
+            } }
         }
     }
 
@@ -171,6 +190,7 @@ class HomeActivity : ComponentActivity() {
                 }
             }
         },
+        AppAction("Hide") { scope.launch { appCatalog.setHidden(app, true) } },
         AppAction("App info") { installedApps.openAppInfo(app) },
         AppAction("Uninstall") { installedApps.uninstall(app) },
     )
@@ -179,6 +199,7 @@ class HomeActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         usageAccess = usageSource.hasAccess()
+        mediaAccess = mediaSource.hasAccess()
         thread { screenTime.today().let { runOnUiThread { screenTimeToday = it } } }
         refreshWeather()
     }

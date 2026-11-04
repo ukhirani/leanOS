@@ -1,7 +1,9 @@
 package com.ukhirani.leanos.home
 
+import android.graphics.Bitmap
 import com.ukhirani.leanos.platform.BatteryState
 import com.ukhirani.leanos.platform.NextAlarm
+import com.ukhirani.leanos.platform.NowPlaying
 import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.usage.ScreenTimeToday
 
@@ -12,7 +14,7 @@ data class GlanceChip(val kind: Kind, val text: String, val description: String)
 
 /** One glance card below the chips, or the "tap to enable" chip standing in for a card that lacks its permission. */
 sealed interface GlanceCard {
-    enum class Feature { ScreenTime, Weather }
+    enum class Feature { ScreenTime, Weather, Media }
 
     data class Enable(val feature: Feature) : GlanceCard
 
@@ -21,6 +23,9 @@ sealed interface GlanceCard {
 
     /** Current weather for the chosen city; [age] is set once it is stale ("Updated 3h ago"). */
     data class Weather(val city: String, val temperature: String, val condition: String, val age: String?) : GlanceCard
+
+    /** What's playing, with artwork when the app gives one. */
+    data class Media(val packageName: String, val title: String, val artist: String?, val artwork: Bitmap?, val playing: Boolean) : GlanceCard
 }
 
 data class AppTime(val packageName: String, val time: String)
@@ -42,10 +47,16 @@ class HomeLayout(private val format: GlanceFormat) {
     }
 
     /**
-     * Glance cards in order. Screen time waits for its first reading; without usage access it is an enable chip.
+     * Glance cards in order: screen time, weather, media. Screen time waits for its first reading; without usage access it is an enable chip.
      * Weather shows only when [settings] is given: a "set your city" chip until a city is picked, then the cached weather.
      */
-    fun cards(usageAccess: Boolean, screenTime: ScreenTimeToday?, settings: Settings? = null): List<GlanceCard> = buildList {
+    fun cards(
+        usageAccess: Boolean,
+        screenTime: ScreenTimeToday?,
+        mediaAccess: Boolean = true,
+        nowPlaying: NowPlaying? = null,
+        settings: Settings? = null,
+    ): List<GlanceCard> = buildList {
         when {
             !usageAccess -> add(GlanceCard.Enable(GlanceCard.Feature.ScreenTime))
             screenTime != null -> {
@@ -54,6 +65,11 @@ class HomeLayout(private val format: GlanceFormat) {
             }
         }
         if (settings != null) weatherCard(settings)?.let(::add)
+        // Media shows only while a session is active; without notification access it is an enable chip.
+        when {
+            !mediaAccess -> add(GlanceCard.Enable(GlanceCard.Feature.Media))
+            nowPlaying != null -> with(nowPlaying) { add(GlanceCard.Media(packageName, title, artist, artwork, playing)) }
+        }
     }
 
     private fun weatherCard(settings: Settings): GlanceCard? {

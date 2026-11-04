@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import java.time.Instant
 import kotlinx.coroutines.flow.Flow
@@ -30,6 +31,8 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
             useFahrenheit = prefs[USE_FAHRENHEIT] ?: defaults.useFahrenheit,
             weatherCity = prefs.weatherCity(),
             weather = prefs.weather(),
+            grayscaleIcons = prefs[GRAYSCALE_ICONS] ?: defaults.grayscaleIcons,
+            hidden = prefs[HIDDEN].orEmpty(),
         )
     }
 
@@ -76,6 +79,14 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
         if (celsius == null || code == null || at == null) null else CurrentWeather(celsius, code, Instant.ofEpochMilli(at))
     }
 
+    override suspend fun setGrayscaleIcons(enabled: Boolean) {
+        store.edit { it[GRAYSCALE_ICONS] = enabled }
+    }
+
+    override suspend fun setHidden(packages: Set<String>) {
+        store.edit { it[HIDDEN] = packages }
+    }
+
     // Enums are stored by name; a name this version doesn't know reads as the default.
     private suspend fun put(key: Preferences.Key<String>, value: Enum<*>) {
         store.edit { it[key] = value.name }
@@ -95,5 +106,7 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
         val USE_FAHRENHEIT = booleanPreferencesKey("use_fahrenheit")
         val WEATHER_CITY = stringPreferencesKey("weather_city")
         val WEATHER = stringPreferencesKey("weather")
+        val GRAYSCALE_ICONS = booleanPreferencesKey("grayscale_icons")
+        val HIDDEN = stringSetPreferencesKey("hidden")
     }
 }

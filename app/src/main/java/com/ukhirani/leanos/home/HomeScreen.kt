@@ -30,11 +30,13 @@ import com.ukhirani.leanos.platform.AlarmSource
 import com.ukhirani.leanos.platform.BackgroundMode
 import com.ukhirani.leanos.platform.BatterySource
 import com.ukhirani.leanos.platform.ClockStyle
+import com.ukhirani.leanos.platform.MediaSource
 import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.platform.SettingsStore
 import com.ukhirani.leanos.ui.rememberClockFontFamily
 import com.ukhirani.leanos.usage.ScreenTimeToday
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flowOf
 
 @Composable
 fun HomeScreen(
@@ -49,6 +51,8 @@ fun HomeScreen(
     usageAccess: Boolean = false,
     screenTime: ScreenTimeToday? = null,
     onSetCity: () -> Unit = {},
+    mediaSource: MediaSource? = null,
+    mediaAccess: Boolean = false,
     favorites: @Composable () -> Unit = {},
 ) {
     val settings by settingsStore.settings.collectAsState(initial = Settings())
@@ -95,9 +99,16 @@ fun HomeScreen(
             // Recomputed each minute with the clock, so the alarm countdown and date stay current.
             val chips = remember(time, settings, alarm, battery) { homeLayout.chips(settings, alarm, battery) }
             GlanceChipRow(chips, alarm, Modifier.padding(top = 8.dp, start = 16.dp, end = 16.dp))
+            // Re-subscribed when access changes, so granting it on the settings page shows the card on return.
+            val nowPlaying by remember(mediaSource, mediaAccess) { mediaSource?.nowPlaying ?: flowOf(null) }.collectAsState(initial = null)
             // Keyed on time too, so the weather's "Updated 3h ago" ages with the clock.
-            val cards = remember(usageAccess, screenTime, settings, time) { homeLayout.cards(usageAccess, screenTime, settings) }
-            GlanceCards(cards, Modifier.padding(top = 24.dp, start = 16.dp, end = 16.dp), onSetCity = onSetCity)
+            val cards = remember(usageAccess, screenTime, mediaAccess, nowPlaying, settings, time) {
+                homeLayout.cards(
+                    usageAccess, screenTime,
+                    mediaAccess = mediaSource == null || mediaAccess, nowPlaying = nowPlaying, settings = settings,
+                )
+            }
+            GlanceCards(cards, Modifier.padding(top = 24.dp, start = 16.dp, end = 16.dp), media = mediaSource, onSetCity = onSetCity)
         }
         Box(Modifier.align(Alignment.BottomCenter)) { favorites() }
     }

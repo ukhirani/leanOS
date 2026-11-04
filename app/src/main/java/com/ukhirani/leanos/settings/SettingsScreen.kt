@@ -45,6 +45,7 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(
     settingsStore: SettingsStore,
     onBack: () -> Unit,
+    onOpenHidden: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenWeatherCity: () -> Unit = {},
 ) {
@@ -111,6 +112,16 @@ fun SettingsScreen(
                 trailingContent = {
                     Switch(checked = settings.useFahrenheit, onCheckedChange = { save { setUseFahrenheit(it) } })
                 },
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_grayscale_icons)) },
+                trailingContent = {
+                    Switch(checked = settings.grayscaleIcons, onCheckedChange = { save { setGrayscaleIcons(it) } })
+                },
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.hidden_apps_title)) },
+                modifier = Modifier.clickable(onClick = onOpenHidden),
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.about_title)) },

@@ -14,8 +14,15 @@ enum class FavoriteChange { Added, Removed, LimitReached }
 
 /** Turns installed apps and settings into what home and the drawer show. */
 class AppCatalog(private val source: InstalledAppsSource, private val settingsStore: SettingsStore) {
-    /** Every launchable app, alphabetical; updates live on install/uninstall. */
-    val drawer: Flow<List<InstalledApp>> = source.apps.map { apps -> apps.sortedWith(alphabetical) }
+    /** Every launchable app that isn't hidden, alphabetical; updates live on install/uninstall. */
+    val drawer: Flow<List<InstalledApp>> = combine(source.apps, settingsStore.settings) { apps, settings ->
+        apps.filter { it.packageName !in settings.hidden }.sortedWith(alphabetical)
+    }
+
+    /** Installed apps the user has hidden, alphabetical: the Hidden apps page. */
+    val hidden: Flow<List<InstalledApp>> = combine(source.apps, settingsStore.settings) { apps, settings ->
+        apps.filter { it.packageName in settings.hidden }.sortedWith(alphabetical)
+    }
 
     /** The favorites row, in the user's order; uninstalled favorites drop out. One entry per package. */
     val favorites: Flow<List<InstalledApp>> = combine(source.apps, settingsStore.settings) { apps, settings ->
@@ -34,6 +41,13 @@ class AppCatalog(private val source: InstalledAppsSource, private val settingsSt
         }
         settingsStore.setFavorites(next)
         return change
+    }
+
+    /** Hides [app]'s package from the drawer and search (and drops it from favorites), or brings it back. */
+    suspend fun setHidden(app: InstalledApp, hidden: Boolean) {
+        val settings = settingsStore.settings.first()
+        if (hidden) settingsStore.setFavorites(settings.favorites - app.packageName)
+        settingsStore.setHidden(if (hidden) settings.hidden + app.packageName else settings.hidden - app.packageName)
     }
 
     /**

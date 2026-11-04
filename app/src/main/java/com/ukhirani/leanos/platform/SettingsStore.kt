@@ -17,6 +17,10 @@ data class Settings(
     val weatherCity: City? = null,
     /** The last weather fetched for [weatherCity]; null until the first fetch succeeds. */
     val weather: CurrentWeather? = null,
+    /** App icons drawn in grayscale (less eye candy, less pull to open apps). */
+    val grayscaleIcons: Boolean = true,
+    /** Hidden apps' package names: kept out of the drawer, search and favorites. */
+    val hidden: Set<String> = emptySet(),
 )
 
 /** Clock style presets: each one is a set of Google Sans Flex axes, never a different font. */
@@ -54,4 +58,6 @@ interface SettingsStore {
     /** Picking a new city (or clearing it) drops the cached weather of the old one. */
     suspend fun setWeatherCity(city: City?)
     suspend fun setWeather(weather: CurrentWeather)
+    suspend fun setGrayscaleIcons(enabled: Boolean)
+    suspend fun setHidden(packages: Set<String>)
 }
