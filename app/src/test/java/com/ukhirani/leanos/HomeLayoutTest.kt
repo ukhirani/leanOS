@@ -1,11 +1,16 @@
 package com.ukhirani.leanos
 
+import com.ukhirani.leanos.home.AppTime
+import com.ukhirani.leanos.home.GlanceCard
 import com.ukhirani.leanos.home.GlanceChip
 import com.ukhirani.leanos.home.GlanceFormat
 import com.ukhirani.leanos.home.HomeLayout
 import com.ukhirani.leanos.platform.BatteryState
 import com.ukhirani.leanos.platform.NextAlarm
 import com.ukhirani.leanos.platform.Settings
+import com.ukhirani.leanos.usage.AppUsage
+import com.ukhirani.leanos.usage.ScreenTimeToday
+import java.time.Duration
 import java.time.ZonedDateTime
 import java.util.Locale
 import kotlinx.coroutines.flow.first
@@ -57,5 +62,35 @@ class HomeLayoutTest {
     fun `battery not charging is described plainly`() = runBlocking {
         batteries.set(BatteryState(level = 15, charging = false))
         assertEquals(GlanceChip(GlanceChip.Kind.Battery, "15%", "Battery 15%"), chips()[1])
+    }
+
+    private fun usage(vararg apps: Pair<String, Long>) = ScreenTimeToday(
+        total = Duration.ofMinutes(apps.sumOf { it.second }),
+        apps = apps.map { (pkg, minutes) -> AppUsage(pkg, Duration.ofMinutes(minutes)) },
+    )
+
+    @Test
+    fun `screen time card shows today's total, the top 3 apps and the full list`() {
+        val card = layout.cards(usageAccess = true, screenTime = usage("chat" to 50L, "maps" to 15L, "mail" to 7L, "news" to 3L))
+        assertEquals(
+            listOf(
+                GlanceCard.ScreenTime(
+                    total = "1h 15m",
+                    top = listOf(AppTime("chat", "50m"), AppTime("maps", "15m"), AppTime("mail", "7m")),
+                    all = listOf(AppTime("chat", "50m"), AppTime("maps", "15m"), AppTime("mail", "7m"), AppTime("news", "3m")),
+                ),
+            ),
+            card,
+        )
+    }
+
+    @Test
+    fun `without usage access the screen time card is swapped for a tap to enable chip`() {
+        assertEquals(listOf(GlanceCard.Enable(GlanceCard.Feature.ScreenTime)), layout.cards(usageAccess = false, screenTime = null))
+    }
+
+    @Test
+    fun `screen time card waits for its first reading`() {
+        assertEquals(emptyList<GlanceCard>(), layout.cards(usageAccess = true, screenTime = null))
     }
 }

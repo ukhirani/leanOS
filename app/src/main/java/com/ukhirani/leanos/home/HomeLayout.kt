@@ -3,11 +3,24 @@ package com.ukhirani.leanos.home
 import com.ukhirani.leanos.platform.BatteryState
 import com.ukhirani.leanos.platform.NextAlarm
 import com.ukhirani.leanos.platform.Settings
+import com.ukhirani.leanos.usage.ScreenTimeToday
 
 /** One chip under the clock: what it shows and what TalkBack announces. */
 data class GlanceChip(val kind: Kind, val text: String, val description: String) {
     enum class Kind { Date, Battery, Alarm }
 }
+
+/** One glance card below the chips, or the "tap to enable" chip standing in for a card that lacks its permission. */
+sealed interface GlanceCard {
+    enum class Feature { ScreenTime }
+
+    data class Enable(val feature: Feature) : GlanceCard
+
+    /** Today's total, the top 3 apps, and the full list shown when expanded. */
+    data class ScreenTime(val total: String, val top: List<AppTime>, val all: List<AppTime>) : GlanceCard
+}
+
+data class AppTime(val packageName: String, val time: String)
 
 /** Decides what the home screen shows. */
 class HomeLayout(private val format: GlanceFormat) {
@@ -22,6 +35,17 @@ class HomeLayout(private val format: GlanceFormat) {
         }
         format.alarmText(alarm?.at, settings)?.let {
             add(GlanceChip(GlanceChip.Kind.Alarm, it, "Next alarm " + it.removePrefix("⏰ ")))
+        }
+    }
+
+    /** Glance cards in order. Screen time waits for its first reading; without usage access it is an enable chip. */
+    fun cards(usageAccess: Boolean, screenTime: ScreenTimeToday?): List<GlanceCard> = buildList {
+        when {
+            !usageAccess -> add(GlanceCard.Enable(GlanceCard.Feature.ScreenTime))
+            screenTime != null -> {
+                val all = screenTime.apps.map { AppTime(it.packageName, format.durationText(it.duration)) }
+                add(GlanceCard.ScreenTime(format.durationText(screenTime.total), all.take(3), all))
+            }
         }
     }
 }
