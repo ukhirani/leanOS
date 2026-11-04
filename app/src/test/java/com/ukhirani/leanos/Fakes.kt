@@ -10,6 +10,9 @@ import com.ukhirani.leanos.platform.InstalledAppsSource
 import com.ukhirani.leanos.platform.NextAlarm
 import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.platform.SettingsStore
+import com.ukhirani.leanos.platform.UsageEvent
+import com.ukhirani.leanos.platform.UsageSource
+import java.time.Instant
 import java.time.ZonedDateTime
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -72,4 +75,18 @@ class FakeInstalledAppsSource(vararg initial: InstalledApp) : InstalledAppsSourc
 
     fun install(app: InstalledApp) = state.update { it + app }
     fun uninstall(packageName: String) = state.update { apps -> apps.filter { it.packageName != packageName } }
+}
+
+class FakeUsageSource(var access: Boolean = true) : UsageSource {
+    val recorded = mutableListOf<UsageEvent>()
+
+    fun resumed(packageName: String, iso: String) = add(packageName, iso, UsageEvent.Type.Resumed)
+    fun paused(packageName: String, iso: String) = add(packageName, iso, UsageEvent.Type.Paused)
+
+    private fun add(packageName: String, iso: String, type: UsageEvent.Type) {
+        recorded += UsageEvent(packageName, ZonedDateTime.parse(iso).toInstant(), type)
+    }
+
+    override fun hasAccess() = access
+    override fun events(since: Instant) = if (access) recorded.filter { !it.at.isBefore(since) } else emptyList()
 }

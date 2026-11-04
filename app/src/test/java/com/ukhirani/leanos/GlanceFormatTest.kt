@@ -3,6 +3,7 @@ package com.ukhirani.leanos
 import com.ukhirani.leanos.home.GlanceFormat
 import com.ukhirani.leanos.platform.BatteryState
 import com.ukhirani.leanos.platform.Settings
+import java.time.Duration
 import java.time.ZonedDateTime
 import java.util.Locale
 import org.junit.Assert.assertEquals
@@ -73,5 +74,12 @@ class GlanceFormatTest {
     fun `battery shows its percentage, with a bolt while charging`() {
         assertEquals("82%", format.batteryText(BatteryState(level = 82, charging = false)))
         assertEquals("⚡ 82%", format.batteryText(BatteryState(level = 82, charging = true)))
+    }
+
+    @Test
+    fun `durations read as hours and padded minutes, or minutes alone under an hour`() {
+        assertEquals("1h 05m", format.durationText(Duration.ofMinutes(65)))
+        assertEquals("12m", format.durationText(Duration.ofMinutes(12)))
+        assertEquals("0m", format.durationText(Duration.ZERO))
     }
 }

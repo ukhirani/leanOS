@@ -24,11 +24,15 @@ import com.ukhirani.leanos.home.HomeLayout
 import com.ukhirani.leanos.home.HomeScreen
 import com.ukhirani.leanos.platform.AndroidAlarmSource
 import com.ukhirani.leanos.platform.AndroidBatterySource
+import com.ukhirani.leanos.platform.AndroidUsageSource
 import com.ukhirani.leanos.platform.FocusAccessibilityService
 import com.ukhirani.leanos.platform.DataStoreSettingsStore
 import com.ukhirani.leanos.platform.LauncherAppsSource
 import com.ukhirani.leanos.platform.SystemClockSource
 import com.ukhirani.leanos.ui.LeanTheme
+import com.ukhirani.leanos.usage.ScreenTime
+import com.ukhirani.leanos.usage.ScreenTimeToday
+import kotlin.concurrent.thread
 
 class HomeActivity : ComponentActivity() {
     // Wiring lives here: real platform sources in, logic and UI out.
@@ -42,6 +46,10 @@ class HomeActivity : ComponentActivity() {
     private val homeLayout = HomeLayout(GlanceFormat(SystemClockSource))
     private val alarmSource by lazy { AndroidAlarmSource(this) }
     private val batterySource by lazy { AndroidBatterySource(this) }
+    private val usageSource by lazy { AndroidUsageSource(this) }
+    private val screenTime by lazy { ScreenTime(usageSource, SystemClockSource, packageName) }
+    private var usageAccess by mutableStateOf(false)
+    private var screenTimeToday by mutableStateOf<ScreenTimeToday?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -50,7 +58,10 @@ class HomeActivity : ComponentActivity() {
             LeanTheme {
                 // Back on home does nothing: a launcher has nowhere to go back to.
                 BackHandler {}
-                HomeScreen(homeClock, settingsStore, homeGestures, homeLayout, alarmSource, batterySource, onSwipeUp = openDrawer)
+                HomeScreen(
+                    homeClock, settingsStore, homeGestures, homeLayout, alarmSource, batterySource,
+                    onSwipeUp = openDrawer, usageAccess = usageAccess, screenTime = screenTimeToday,
+                )
                 val apps by appCatalog.drawer.collectAsState(initial = emptyList())
                 AnimatedVisibility(
                     visible = drawerOpen,
@@ -65,6 +76,13 @@ class HomeActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    // Screen time refreshes each time home becomes visible; reading a day of events stays off the main thread.
+    override fun onResume() {
+        super.onResume()
+        usageAccess = usageSource.hasAccess()
+        thread { screenTime.today().let { runOnUiThread { screenTimeToday = it } } }
     }
 
     // Pressing Home while the drawer is open returns to home.
