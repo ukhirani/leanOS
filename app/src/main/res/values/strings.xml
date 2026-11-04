@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">LeanOS</string>
+    <string name="focus_service_label">LeanOS Focus</string>
+    <string name="focus_service_description">Lets LeanOS see which app is open, so it can enforce the daily limits you set, and lets home gestures open notifications and lock the screen. It does not read what is on your screen and sends nothing off your phone.</string>
+    <string name="focus_prompt_title">Turn on LeanOS Focus</string>
+    <string name="focus_prompt_body">This gesture needs the LeanOS Focus accessibility service. Turn it on in accessibility settings.</string>
+    <string name="focus_prompt_open">Open settings</string>
+    <string name="focus_prompt_not_now">Not now</string>
 </resources>

@@ -6,7 +6,9 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.ukhirani.leanos.home.HomeClock
+import com.ukhirani.leanos.home.HomeGestures
 import com.ukhirani.leanos.home.HomeScreen
+import com.ukhirani.leanos.platform.FocusAccessibilityService
 import com.ukhirani.leanos.platform.DataStoreSettingsStore
 import com.ukhirani.leanos.platform.SystemClockSource
 import com.ukhirani.leanos.ui.LeanTheme
@@ -15,6 +17,7 @@ class HomeActivity : ComponentActivity() {
     // Wiring lives here: real platform sources in, logic and UI out.
     private val settingsStore by lazy { DataStoreSettingsStore(this) }
     private val homeClock = HomeClock(SystemClockSource)
+    private val homeGestures = HomeGestures(FocusAccessibilityService)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -23,7 +26,7 @@ class HomeActivity : ComponentActivity() {
             LeanTheme {
                 // Back on home does nothing: a launcher has nowhere to go back to.
                 BackHandler {}
-                HomeScreen(homeClock, settingsStore)
+                HomeScreen(homeClock, settingsStore, homeGestures)
             }
         }
     }
