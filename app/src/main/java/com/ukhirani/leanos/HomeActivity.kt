@@ -17,9 +17,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.ukhirani.leanos.drawer.AppCatalog
 import com.ukhirani.leanos.drawer.AppDrawer
+import com.ukhirani.leanos.home.GlanceFormat
 import com.ukhirani.leanos.home.HomeClock
 import com.ukhirani.leanos.home.HomeGestures
+import com.ukhirani.leanos.home.HomeLayout
 import com.ukhirani.leanos.home.HomeScreen
+import com.ukhirani.leanos.platform.AndroidAlarmSource
+import com.ukhirani.leanos.platform.AndroidBatterySource
 import com.ukhirani.leanos.platform.FocusAccessibilityService
 import com.ukhirani.leanos.platform.DataStoreSettingsStore
 import com.ukhirani.leanos.platform.LauncherAppsSource
@@ -35,6 +39,9 @@ class HomeActivity : ComponentActivity() {
     private val appCatalog by lazy { AppCatalog(installedApps) }
     private var drawerOpen by mutableStateOf(false)
     private val openDrawer = { drawerOpen = true }
+    private val homeLayout = HomeLayout(GlanceFormat(SystemClockSource))
+    private val alarmSource by lazy { AndroidAlarmSource(this) }
+    private val batterySource by lazy { AndroidBatterySource(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -43,7 +50,7 @@ class HomeActivity : ComponentActivity() {
             LeanTheme {
                 // Back on home does nothing: a launcher has nowhere to go back to.
                 BackHandler {}
-                HomeScreen(homeClock, settingsStore, homeGestures, onSwipeUp = openDrawer)
+                HomeScreen(homeClock, settingsStore, homeGestures, homeLayout, alarmSource, batterySource, onSwipeUp = openDrawer)
                 val apps by appCatalog.drawer.collectAsState(initial = emptyList())
                 AnimatedVisibility(
                     visible = drawerOpen,
