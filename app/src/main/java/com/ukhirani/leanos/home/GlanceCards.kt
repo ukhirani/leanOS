@@ -42,13 +42,47 @@ import com.ukhirani.leanos.platform.MediaSource
 
 /** The glance cards under the chips, in the order HomeLayout gives them. */
 @Composable
-fun GlanceCards(cards: List<GlanceCard>, modifier: Modifier = Modifier, media: MediaSource? = null) {
+fun GlanceCards(
+    cards: List<GlanceCard>,
+    modifier: Modifier = Modifier,
+    media: MediaSource? = null,
+    onSetCity: () -> Unit = {},
+) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         cards.forEach { card ->
             when (card) {
                 is GlanceCard.ScreenTime -> ScreenTimeCard(card)
+                is GlanceCard.Weather -> WeatherCard(card, onSetCity)
                 is GlanceCard.Media -> MediaCard(card, media)
-                is GlanceCard.Enable -> EnableChip(card.feature)
+                is GlanceCard.Enable -> EnableChip(card.feature, onSetCity)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeatherCard(card: GlanceCard.Weather, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        // TalkBack reads the texts inside: "Weather in Paris, 11°C, Overcast".
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    ) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                "Weather in ${card.city}",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(card.temperature, style = MaterialTheme.typography.headlineMedium)
+                Text(card.condition, Modifier.padding(bottom = 4.dp), style = MaterialTheme.typography.bodyLarge)
+            }
+            card.age?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -136,16 +170,18 @@ private fun MediaButton(icon: Int, description: String, onClick: () -> Unit) {
 
 /** "Tap to enable": stands in for a feature whose permission is missing and opens its settings page. */
 @Composable
-private fun EnableChip(feature: GlanceCard.Feature) {
+private fun EnableChip(feature: GlanceCard.Feature, onSetCity: () -> Unit) {
     val context = LocalContext.current
     val text = when (feature) {
         GlanceCard.Feature.ScreenTime -> "Screen time · tap to enable"
+        GlanceCard.Feature.Weather -> "Weather · set your city"
         GlanceCard.Feature.Media -> "Media · tap to enable"
     }
     Surface(
         onClick = {
             when (feature) {
                 GlanceCard.Feature.ScreenTime -> context.openUsageAccessSettings()
+                GlanceCard.Feature.Weather -> onSetCity()
                 GlanceCard.Feature.Media -> context.openNotificationAccessSettings()
             }
         },

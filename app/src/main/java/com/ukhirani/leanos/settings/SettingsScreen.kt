@@ -47,6 +47,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onOpenHidden: () -> Unit,
     onOpenAbout: () -> Unit,
+    onOpenWeatherCity: () -> Unit = {},
     onOpenLimits: () -> Unit = {},
 ) {
     val settings by settingsStore.settings.collectAsState(initial = Settings())
@@ -102,6 +103,17 @@ fun SettingsScreen(
                     IconSize.LARGE -> R.string.icon_size_large
                 } },
             ) { save { setIconSize(it) } }
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_weather_city)) },
+                supportingContent = { Text(settings.weatherCity?.name ?: stringResource(R.string.weather_city_not_set)) },
+                modifier = Modifier.clickable(onClick = onOpenWeatherCity),
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_fahrenheit)) },
+                trailingContent = {
+                    Switch(checked = settings.useFahrenheit, onCheckedChange = { save { setUseFahrenheit(it) } })
+                },
+            )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_grayscale_icons)) },
                 trailingContent = {

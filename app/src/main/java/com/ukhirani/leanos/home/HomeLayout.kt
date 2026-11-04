@@ -14,12 +14,15 @@ data class GlanceChip(val kind: Kind, val text: String, val description: String)
 
 /** One glance card below the chips, or the "tap to enable" chip standing in for a card that lacks its permission. */
 sealed interface GlanceCard {
-    enum class Feature { ScreenTime, Media }
+    enum class Feature { ScreenTime, Weather, Media }
 
     data class Enable(val feature: Feature) : GlanceCard
 
     /** Today's total, the top 3 apps, and the full list shown when expanded. */
     data class ScreenTime(val total: String, val top: List<AppTime>, val all: List<AppTime>) : GlanceCard
+
+    /** Current weather for the chosen city; [age] is set once it is stale ("Updated 3h ago"). */
+    data class Weather(val city: String, val temperature: String, val condition: String, val age: String?) : GlanceCard
 
     /** What's playing, with artwork when the app gives one. */
     data class Media(val packageName: String, val title: String, val artist: String?, val artwork: Bitmap?, val playing: Boolean) : GlanceCard
@@ -43,12 +46,16 @@ class HomeLayout(private val format: GlanceFormat) {
         }
     }
 
-    /** Glance cards in order: screen time, then media. Screen time waits for its first reading; without usage access it is an enable chip. */
+    /**
+     * Glance cards in order: screen time, weather, media. Screen time waits for its first reading; without usage access it is an enable chip.
+     * Weather shows only when [settings] is given: a "set your city" chip until a city is picked, then the cached weather.
+     */
     fun cards(
         usageAccess: Boolean,
         screenTime: ScreenTimeToday?,
         mediaAccess: Boolean = true,
         nowPlaying: NowPlaying? = null,
+        settings: Settings? = null,
     ): List<GlanceCard> = buildList {
         when {
             !usageAccess -> add(GlanceCard.Enable(GlanceCard.Feature.ScreenTime))
@@ -57,10 +64,22 @@ class HomeLayout(private val format: GlanceFormat) {
                 add(GlanceCard.ScreenTime(format.durationText(screenTime.total), all.take(3), all))
             }
         }
+        if (settings != null) weatherCard(settings)?.let(::add)
         // Media shows only while a session is active; without notification access it is an enable chip.
         when {
             !mediaAccess -> add(GlanceCard.Enable(GlanceCard.Feature.Media))
             nowPlaying != null -> with(nowPlaying) { add(GlanceCard.Media(packageName, title, artist, artwork, playing)) }
         }
+    }
+
+    private fun weatherCard(settings: Settings): GlanceCard? {
+        val city = settings.weatherCity ?: return GlanceCard.Enable(GlanceCard.Feature.Weather)
+        val weather = settings.weather ?: return null
+        return GlanceCard.Weather(
+            city = city.name.substringBefore(','),
+            temperature = format.temperatureText(weather.celsius, settings),
+            condition = format.conditionText(weather.code),
+            age = format.weatherAgeText(weather.at),
+        )
     }
 }

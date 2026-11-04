@@ -7,6 +7,9 @@
         android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
 
+    <!-- Weather: city search and current conditions from Open-Meteo. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- The per-app menu's Uninstall opens the system uninstall dialog. -->
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
 

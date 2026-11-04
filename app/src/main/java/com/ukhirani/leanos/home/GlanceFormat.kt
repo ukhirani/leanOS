@@ -36,4 +36,34 @@ class GlanceFormat(private val clock: ClockSource, private val locale: Locale = 
         val m = minutes % 60
         return if (h > 0) "${h}h ${"%02d".format(m)}m" else "${m}m"
     }
+
+    /** "11°C", or "52°F" when switched. Whole degrees. */
+    fun temperatureText(celsius: Double, settings: Settings): String =
+        if (settings.useFahrenheit) "${Math.round(celsius * 9 / 5 + 32)}°F" else "${Math.round(celsius)}°C"
+
+    /** A plain condition for a WMO weather code: "Clear", "Rain", ... */
+    fun conditionText(code: Int): String = when (code) {
+        0 -> "Clear"
+        1 -> "Mostly clear"
+        2 -> "Partly cloudy"
+        3 -> "Overcast"
+        45, 48 -> "Fog"
+        51, 53, 55, 56, 57 -> "Drizzle"
+        61, 63, 65, 66, 67 -> "Rain"
+        71, 73, 75, 77 -> "Snow"
+        80, 81, 82 -> "Showers"
+        85, 86 -> "Snow showers"
+        95, 96, 99 -> "Thunderstorm"
+        else -> "Unknown"
+    }
+
+    /** "Updated 3h ago" once the weather is an hour old, else null. */
+    fun weatherAgeText(at: Instant): String? {
+        val age = Duration.between(at, clock.now().toInstant())
+        return when {
+            age.toHours() < 1 -> null
+            age.toDays() < 1 -> "Updated ${age.toHours()}h ago"
+            else -> "Updated ${age.toDays()}d ago"
+        }
+    }
 }

@@ -67,6 +67,11 @@ class FakeSettingsStore(initial: Settings = Settings()) : SettingsStore {
         state.update { it.copy(favorites = packages) }
     }
 
+    override suspend fun setUseFahrenheit(enabled: Boolean) = state.update { it.copy(useFahrenheit = enabled) }
+    override suspend fun setWeatherCity(city: com.ukhirani.leanos.platform.City?) =
+        state.update { it.copy(weatherCity = city, weather = null) }
+    override suspend fun setWeather(weather: com.ukhirani.leanos.platform.CurrentWeather) =
+        state.update { it.copy(weather = weather) }
     override suspend fun setDailyLimit(packageName: String, minutes: Int?) = state.update {
         it.copy(dailyLimits = if (minutes == null) it.dailyLimits - packageName else it.dailyLimits + (packageName to minutes))
     }

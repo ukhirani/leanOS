@@ -82,6 +82,30 @@ class DataStoreSettingsStoreTest {
     }
 
     @Test
+    fun `weather city, units and the cached weather survive a restart`() = runBlocking {
+        val file = File(tmp.root, "w.preferences_pb")
+        val city = com.ukhirani.leanos.platform.City("Paris, Île-de-France, France", 48.85341, 2.3488)
+        val weather = com.ukhirani.leanos.platform.CurrentWeather(-3.5, 61, java.time.Instant.parse("2026-11-04T11:00:00Z"))
+        val first = DataStoreSettingsStore(dataStore(file))
+        first.setUseFahrenheit(true)
+        first.setWeatherCity(city)
+        first.setWeather(weather)
+        scopes.forEach { it.coroutineContext[Job]!!.cancelAndJoin() }
+
+        val reopened = DataStoreSettingsStore(dataStore(file)).settings.first()
+        assertEquals(Triple(true, city, weather), Triple(reopened.useFahrenheit, reopened.weatherCity, reopened.weather))
+    }
+
+    @Test
+    fun `picking another city drops the old city's cached weather`() = runBlocking {
+        val store = DataStoreSettingsStore(dataStore(File(tmp.root, "x.preferences_pb")))
+        store.setWeatherCity(com.ukhirani.leanos.platform.City("Paris, France", 48.85, 2.35))
+        store.setWeather(com.ukhirani.leanos.platform.CurrentWeather(9.0, 0, java.time.Instant.EPOCH))
+        store.setWeatherCity(com.ukhirani.leanos.platform.City("Oslo, Norway", 59.91, 10.75))
+        assertEquals(null, store.settings.first().weather)
+    }
+
+    @Test
     fun `daily limits can be set, changed and removed, and survive a restart`() = runBlocking {
         val file = File(tmp.root, "d.preferences_pb")
         val first = DataStoreSettingsStore(dataStore(file))
