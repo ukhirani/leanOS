@@ -13,6 +13,10 @@ data class Settings(
     val favorites: List<String> = emptyList(),
     /** Daily limits: package name to minutes per day. */
     val dailyLimits: Map<String, Int> = emptyMap(),
+    /** App icons drawn in grayscale (less eye candy, less pull to open apps). */
+    val grayscaleIcons: Boolean = true,
+    /** Hidden apps' package names: kept out of the drawer, search and favorites. */
+    val hidden: Set<String> = emptySet(),
 )
 
 /** Clock style presets: each one is a set of Google Sans Flex axes, never a different font. */
@@ -49,4 +53,6 @@ interface SettingsStore {
 
     /** Sets [packageName]'s daily limit in minutes; null removes it. */
     suspend fun setDailyLimit(packageName: String, minutes: Int?)
+    suspend fun setGrayscaleIcons(enabled: Boolean)
+    suspend fun setHidden(packages: Set<String>)
 }

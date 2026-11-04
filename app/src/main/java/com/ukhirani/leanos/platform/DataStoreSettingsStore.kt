@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -27,6 +28,8 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
             // Package names can't contain newlines, so one string keeps the order.
             favorites = prefs[FAVORITES]?.split('\n')?.filter { it.isNotEmpty() }.orEmpty(),
             dailyLimits = prefs.dailyLimits(),
+            grayscaleIcons = prefs[GRAYSCALE_ICONS] ?: defaults.grayscaleIcons,
+            hidden = prefs[HIDDEN].orEmpty(),
         )
     }
 
@@ -59,6 +62,14 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
         store.edit { it[FAVORITES] = packages.joinToString("\n") }
     }
 
+    override suspend fun setGrayscaleIcons(enabled: Boolean) {
+        store.edit { it[GRAYSCALE_ICONS] = enabled }
+    }
+
+    override suspend fun setHidden(packages: Set<String>) {
+        store.edit { it[HIDDEN] = packages }
+    }
+
     // Enums are stored by name; a name this version doesn't know reads as the default.
     private suspend fun put(key: Preferences.Key<String>, value: Enum<*>) {
         store.edit { it[key] = value.name }
@@ -76,5 +87,7 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
         val ICON_SIZE = stringPreferencesKey("icon_size")
         val FAVORITES = stringPreferencesKey("favorites")
         val DAILY_LIMITS = stringPreferencesKey("daily_limits")
+        val GRAYSCALE_ICONS = booleanPreferencesKey("grayscale_icons")
+        val HIDDEN = stringSetPreferencesKey("hidden")
     }
 }
