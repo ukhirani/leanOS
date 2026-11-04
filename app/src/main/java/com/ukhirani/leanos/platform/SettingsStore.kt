@@ -9,6 +9,8 @@ data class Settings(
     val accent: Accent = Accent.BLUE,
     val background: BackgroundMode = BackgroundMode.WALLPAPER,
     val iconSize: IconSize = IconSize.MEDIUM,
+    /** Favorite apps' package names, in row order (at most 6). */
+    val favorites: List<String> = emptyList(),
 )
 
 /** Clock style presets: each one is a set of Google Sans Flex axes, never a different font. */
@@ -41,4 +43,5 @@ interface SettingsStore {
     suspend fun setAccent(accent: Accent)
     suspend fun setBackground(mode: BackgroundMode)
     suspend fun setIconSize(size: IconSize)
+    suspend fun setFavorites(packages: List<String>)
 }

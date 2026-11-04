@@ -45,6 +45,7 @@ fun HomeScreen(
     batterySource: BatterySource,
     onSwipeUp: () -> Unit = {},
     onOpenSettings: (() -> Unit)? = null,
+    favorites: @Composable () -> Unit = {},
 ) {
     val settings by settingsStore.settings.collectAsState(initial = Settings())
     val alarm by alarmSource.nextAlarm.collectAsState(initial = null)
@@ -91,6 +92,7 @@ fun HomeScreen(
             val chips = remember(time, settings, alarm, battery) { homeLayout.chips(settings, alarm, battery) }
             GlanceChipRow(chips, alarm, Modifier.padding(top = 8.dp, start = 16.dp, end = 16.dp))
         }
+        Box(Modifier.align(Alignment.BottomCenter)) { favorites() }
     }
 }
 

@@ -2,15 +2,39 @@ package com.ukhirani.leanos.drawer
 
 import com.ukhirani.leanos.platform.InstalledApp
 import com.ukhirani.leanos.platform.InstalledAppsSource
+import com.ukhirani.leanos.platform.SettingsStore
 import java.text.Normalizer
 import java.util.Locale
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
-/** Turns installed apps into what the drawer shows: the full list and search results. */
-class AppCatalog(source: InstalledAppsSource) {
+enum class FavoriteChange { Added, Removed, LimitReached }
+
+/** Turns installed apps and settings into what home and the drawer show. */
+class AppCatalog(private val source: InstalledAppsSource, private val settingsStore: SettingsStore) {
     /** Every launchable app, alphabetical; updates live on install/uninstall. */
     val drawer: Flow<List<InstalledApp>> = source.apps.map { apps -> apps.sortedWith(alphabetical) }
+
+    /** The favorites row, in the user's order; uninstalled favorites drop out. One entry per package. */
+    val favorites: Flow<List<InstalledApp>> = combine(source.apps, settingsStore.settings) { apps, settings ->
+        settings.favorites.mapNotNull { pkg -> apps.filter { it.packageName == pkg }.minWithOrNull(alphabetical) }
+    }
+
+    /** Adds [app]'s package to the end of the favorites, or removes it; refuses past [MAX_FAVORITES]. */
+    suspend fun toggleFavorite(app: InstalledApp): FavoriteChange {
+        val installed = source.apps.first().mapTo(HashSet()) { it.packageName }
+        // Uninstalled favorites are pruned here so they don't hold a slot.
+        val current = settingsStore.settings.first().favorites.filter { it in installed }
+        val (next, change) = when {
+            app.packageName in current -> current - app.packageName to FavoriteChange.Removed
+            current.size >= MAX_FAVORITES -> return FavoriteChange.LimitReached
+            else -> current + app.packageName to FavoriteChange.Added
+        }
+        settingsStore.setFavorites(next)
+        return change
+    }
 
     /**
      * Apps matching [query], best first: name starts with it, then a word in the name starts
@@ -26,23 +50,25 @@ class AppCatalog(source: InstalledAppsSource) {
             .map { it.first }
     }
 
-    private companion object {
+    companion object {
+        const val MAX_FAVORITES = 6
+
         /** 0 = starts with, 1 = a word starts with, 2 = contains, null = no match. */
-        fun rank(name: String, query: String): Int? = when {
+        private fun rank(name: String, query: String): Int? = when {
             name.startsWith(query) -> 0
             name.split(WORD_BREAK).any { it.startsWith(query) } -> 1
             query in name -> 2
             else -> null
         }
 
-        val WORD_BREAK = Regex("[^\\p{L}\\p{N}]+")
+        private val WORD_BREAK = Regex("[^\\p{L}\\p{N}]+")
 
-        val alphabetical: Comparator<InstalledApp> = compareBy({ fold(it.label) }, { it.label })
+        private val alphabetical: Comparator<InstalledApp> = compareBy({ fold(it.label) }, { it.label })
 
         /** Case- and accent-insensitive form of [text]. */
-        fun fold(text: String): String =
+        private fun fold(text: String): String =
             Normalizer.normalize(text, Normalizer.Form.NFD).replace(MARKS, "").lowercase(Locale.ROOT)
 
-        val MARKS = Regex("\\p{M}+")
+        private val MARKS = Regex("\\p{M}+")
     }
 }

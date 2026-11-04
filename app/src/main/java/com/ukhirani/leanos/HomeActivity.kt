@@ -11,7 +11,23 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import com.ukhirani.leanos.drawer.AppAction
+import com.ukhirani.leanos.drawer.AppActionsSheet
+import com.ukhirani.leanos.drawer.FavoriteChange
+import com.ukhirani.leanos.drawer.FavoritesRow
+import com.ukhirani.leanos.platform.InstalledApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -43,7 +59,7 @@ class HomeActivity : ComponentActivity() {
     private val homeClock = HomeClock(SystemClockSource)
     private val homeGestures = HomeGestures(FocusAccessibilityService)
     private val installedApps by lazy { LauncherAppsSource(this) }
-    private val appCatalog by lazy { AppCatalog(installedApps) }
+    private val appCatalog by lazy { AppCatalog(installedApps, settingsStore) }
     private var drawerOpen by mutableStateOf(false)
     private val openDrawer = { drawerOpen = true }
     private var settingsPage by mutableStateOf<SettingsPage?>(null)
@@ -60,10 +76,18 @@ class HomeActivity : ComponentActivity() {
             LeanTheme(settings) {
                 // Back on home does nothing: a launcher has nowhere to go back to.
                 BackHandler {}
+                val scope = rememberCoroutineScope()
+                val snackbar = remember { SnackbarHostState() }
+                var menuFor by remember { mutableStateOf<InstalledApp?>(null) }
+                val showMenu = remember { { app: InstalledApp -> menuFor = app } }
+                val favorites by appCatalog.favorites.collectAsState(initial = emptyList())
+                val iconSize = settings.iconSize.dp.dp
                 HomeScreen(
                     homeClock, settingsStore, homeGestures, homeLayout, alarmSource, batterySource,
                     onSwipeUp = openDrawer, onOpenSettings = openSettings,
-                )
+                ) {
+                    FavoritesRow(favorites, installedApps::icon, installedApps::launch, showMenu, iconSize)
+                }
                 val apps by appCatalog.drawer.collectAsState(initial = emptyList())
                 AnimatedVisibility(
                     visible = drawerOpen,
@@ -71,7 +95,7 @@ class HomeActivity : ComponentActivity() {
                     exit = slideOutVertically { it / 4 } + fadeOut(),
                 ) {
                     BackHandler { drawerOpen = false }
-                    AppDrawer(apps, appCatalog, installedApps::icon, settings.iconSize.dp.dp) { app ->
+                    AppDrawer(apps, appCatalog, installedApps::icon, iconSize, showMenu) { app ->
                         installedApps.launch(app)
                         drawerOpen = false
                     }
@@ -91,9 +115,27 @@ class HomeActivity : ComponentActivity() {
                     }
                     null -> Unit
                 }
+                menuFor?.let { app ->
+                    val isFavorite = favorites.any { it.packageName == app.packageName }
+                    AppActionsSheet(app, appActions(app, isFavorite, scope, snackbar)) { menuFor = null }
+                }
+                SnackbarHost(snackbar, Modifier.fillMaxSize().safeDrawingPadding().wrapContentHeight(Alignment.Bottom))
             }
         }
     }
+
+    /** The long-press menu for [app]. New per-app actions go in this list. */
+    private fun appActions(app: InstalledApp, isFavorite: Boolean, scope: CoroutineScope, snackbar: SnackbarHostState) = listOf(
+        AppAction(if (isFavorite) "Remove from favorites" else "Add to favorites") {
+            scope.launch {
+                if (appCatalog.toggleFavorite(app) == FavoriteChange.LimitReached) {
+                    snackbar.showSnackbar("You can have up to ${AppCatalog.MAX_FAVORITES} favorites")
+                }
+            }
+        },
+        AppAction("App info") { installedApps.openAppInfo(app) },
+        AppAction("Uninstall") { installedApps.uninstall(app) },
+    )
 
     // Pressing Home while the drawer or settings is open returns to home.
     override fun onNewIntent(intent: Intent) {

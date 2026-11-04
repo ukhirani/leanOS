@@ -24,6 +24,8 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
             accent = prefs.enum(ACCENT, defaults.accent),
             background = prefs.enum(BACKGROUND, defaults.background),
             iconSize = prefs.enum(ICON_SIZE, defaults.iconSize),
+            // Package names can't contain newlines, so one string keeps the order.
+            favorites = prefs[FAVORITES]?.split('\n')?.filter { it.isNotEmpty() }.orEmpty(),
         )
     }
 
@@ -36,6 +38,10 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
     override suspend fun setAccent(accent: Accent) = put(ACCENT, accent)
     override suspend fun setBackground(mode: BackgroundMode) = put(BACKGROUND, mode)
     override suspend fun setIconSize(size: IconSize) = put(ICON_SIZE, size)
+
+    override suspend fun setFavorites(packages: List<String>) {
+        store.edit { it[FAVORITES] = packages.joinToString("\n") }
+    }
 
     // Enums are stored by name; a name this version doesn't know reads as the default.
     private suspend fun put(key: Preferences.Key<String>, value: Enum<*>) {
@@ -52,5 +58,6 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
         val ACCENT = stringPreferencesKey("accent")
         val BACKGROUND = stringPreferencesKey("background")
         val ICON_SIZE = stringPreferencesKey("icon_size")
+        val FAVORITES = stringPreferencesKey("favorites")
     }
 }

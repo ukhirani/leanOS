@@ -57,6 +57,10 @@ class FakeSettingsStore(initial: Settings = Settings()) : SettingsStore {
     override suspend fun setAccent(accent: Accent) = state.update { it.copy(accent = accent) }
     override suspend fun setBackground(mode: BackgroundMode) = state.update { it.copy(background = mode) }
     override suspend fun setIconSize(size: IconSize) = state.update { it.copy(iconSize = size) }
+
+    override suspend fun setFavorites(packages: List<String>) {
+        state.update { it.copy(favorites = packages) }
+    }
 }
 
 class FakeFocusService(var running: Boolean = true) : FocusService {
