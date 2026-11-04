@@ -82,4 +82,12 @@ class DataStoreSettingsStoreTest {
         ds.edit { it[stringPreferencesKey("clock_style")] = "RETIRED_PRESET" }
         assertEquals(ClockStyle.CHUNKY, DataStoreSettingsStore(ds).settings.first().clockStyle)
     }
+
+    @Test
+    fun `hidden apps survive a restart`() = runBlocking {
+        val file = File(tmp.root, "d.preferences_pb")
+        DataStoreSettingsStore(dataStore(file)).setHidden(setOf("pkg.a", "pkg.b"))
+        scopes.forEach { it.cancel() }
+        assertEquals(setOf("pkg.a", "pkg.b"), DataStoreSettingsStore(dataStore(file)).settings.first().hidden)
+    }
 }
