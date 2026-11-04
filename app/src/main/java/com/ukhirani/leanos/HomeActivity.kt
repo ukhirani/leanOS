@@ -41,6 +41,7 @@ import com.ukhirani.leanos.home.HomeLayout
 import com.ukhirani.leanos.home.HomeScreen
 import com.ukhirani.leanos.platform.AndroidAlarmSource
 import com.ukhirani.leanos.platform.AndroidBatterySource
+import com.ukhirani.leanos.platform.AndroidUsageSource
 import com.ukhirani.leanos.platform.FocusAccessibilityService
 import com.ukhirani.leanos.platform.DataStoreSettingsStore
 import com.ukhirani.leanos.platform.LauncherAppsSource
@@ -50,6 +51,9 @@ import com.ukhirani.leanos.settings.AboutScreen
 import com.ukhirani.leanos.settings.HiddenAppsScreen
 import com.ukhirani.leanos.settings.SettingsScreen
 import com.ukhirani.leanos.ui.LeanTheme
+import com.ukhirani.leanos.usage.ScreenTime
+import com.ukhirani.leanos.usage.ScreenTimeToday
+import kotlin.concurrent.thread
 
 /** Destinations layered over home; null means home itself. */
 private enum class SettingsPage { Settings, Hidden, About }
@@ -68,6 +72,10 @@ class HomeActivity : ComponentActivity() {
     private val homeLayout = HomeLayout(GlanceFormat(SystemClockSource))
     private val alarmSource by lazy { AndroidAlarmSource(this) }
     private val batterySource by lazy { AndroidBatterySource(this) }
+    private val usageSource by lazy { AndroidUsageSource(this) }
+    private val screenTime by lazy { ScreenTime(usageSource, SystemClockSource, packageName) }
+    private var usageAccess by mutableStateOf(false)
+    private var screenTimeToday by mutableStateOf<ScreenTimeToday?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -86,6 +94,7 @@ class HomeActivity : ComponentActivity() {
                 HomeScreen(
                     homeClock, settingsStore, homeGestures, homeLayout, alarmSource, batterySource,
                     onSwipeUp = openDrawer, onOpenSettings = openSettings,
+                    usageAccess = usageAccess, screenTime = screenTimeToday,
                 ) {
                     FavoritesRow(favorites, installedApps::icon, installedApps::launch, showMenu, iconSize)
                 }
@@ -149,6 +158,13 @@ class HomeActivity : ComponentActivity() {
         AppAction("App info") { installedApps.openAppInfo(app) },
         AppAction("Uninstall") { installedApps.uninstall(app) },
     )
+
+    // Screen time refreshes each time home becomes visible; reading a day of events stays off the main thread.
+    override fun onResume() {
+        super.onResume()
+        usageAccess = usageSource.hasAccess()
+        thread { screenTime.today().let { runOnUiThread { screenTimeToday = it } } }
+    }
 
     // Pressing Home while the drawer or settings is open returns to home.
     override fun onNewIntent(intent: Intent) {

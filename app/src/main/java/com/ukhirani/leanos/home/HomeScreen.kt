@@ -33,6 +33,7 @@ import com.ukhirani.leanos.platform.ClockStyle
 import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.platform.SettingsStore
 import com.ukhirani.leanos.ui.rememberClockFontFamily
+import com.ukhirani.leanos.usage.ScreenTimeToday
 import kotlinx.coroutines.delay
 
 @Composable
@@ -45,6 +46,8 @@ fun HomeScreen(
     batterySource: BatterySource,
     onSwipeUp: () -> Unit = {},
     onOpenSettings: (() -> Unit)? = null,
+    usageAccess: Boolean = false,
+    screenTime: ScreenTimeToday? = null,
     favorites: @Composable () -> Unit = {},
 ) {
     val settings by settingsStore.settings.collectAsState(initial = Settings())
@@ -91,6 +94,8 @@ fun HomeScreen(
             // Recomputed each minute with the clock, so the alarm countdown and date stay current.
             val chips = remember(time, settings, alarm, battery) { homeLayout.chips(settings, alarm, battery) }
             GlanceChipRow(chips, alarm, Modifier.padding(top = 8.dp, start = 16.dp, end = 16.dp))
+            val cards = remember(usageAccess, screenTime) { homeLayout.cards(usageAccess, screenTime) }
+            GlanceCards(cards, Modifier.padding(top = 24.dp, start = 16.dp, end = 16.dp))
         }
         Box(Modifier.align(Alignment.BottomCenter)) { favorites() }
     }
