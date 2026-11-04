@@ -1,6 +1,11 @@
 package com.ukhirani.leanos
 
+import com.ukhirani.leanos.platform.Accent
+import com.ukhirani.leanos.platform.BackgroundMode
 import com.ukhirani.leanos.platform.ClockSource
+import com.ukhirani.leanos.platform.ClockStyle
+import com.ukhirani.leanos.platform.ColorSource
+import com.ukhirani.leanos.platform.IconSize
 import com.ukhirani.leanos.platform.FocusService
 import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.platform.SettingsStore
@@ -22,6 +27,12 @@ class FakeSettingsStore(initial: Settings = Settings()) : SettingsStore {
     override suspend fun setUse24Hour(enabled: Boolean) {
         state.update { it.copy(use24Hour = enabled) }
     }
+
+    override suspend fun setClockStyle(style: ClockStyle) = state.update { it.copy(clockStyle = style) }
+    override suspend fun setColorSource(source: ColorSource) = state.update { it.copy(colorSource = source) }
+    override suspend fun setAccent(accent: Accent) = state.update { it.copy(accent = accent) }
+    override suspend fun setBackground(mode: BackgroundMode) = state.update { it.copy(background = mode) }
+    override suspend fun setIconSize(size: IconSize) = state.update { it.copy(iconSize = size) }
 }
 
 class FakeFocusService(var running: Boolean = true) : FocusService {
