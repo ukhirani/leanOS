@@ -7,6 +7,7 @@ import com.ukhirani.leanos.home.GlanceFormat
 import com.ukhirani.leanos.home.HomeLayout
 import com.ukhirani.leanos.platform.BatteryState
 import com.ukhirani.leanos.platform.NextAlarm
+import com.ukhirani.leanos.platform.NowPlaying
 import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.usage.AppUsage
 import com.ukhirani.leanos.usage.ScreenTimeToday
@@ -92,5 +93,42 @@ class HomeLayoutTest {
     @Test
     fun `screen time card waits for its first reading`() {
         assertEquals(emptyList<GlanceCard>(), layout.cards(usageAccess = true, screenTime = null))
+    }
+
+    private val media = FakeMediaSource()
+
+    private suspend fun mediaCards() = layout.cards(
+        usageAccess = true, screenTime = null, mediaAccess = media.hasAccess(), nowPlaying = media.nowPlaying.first(),
+    )
+
+    @Test
+    fun `media card shows what's playing only while a session is active`() = runBlocking {
+        assertEquals(emptyList<GlanceCard>(), mediaCards())
+        media.play(NowPlaying("pkg.music", title = "Song", artist = "Band", playing = true))
+        assertEquals(listOf(GlanceCard.Media("pkg.music", "Song", "Band", null, playing = true)), mediaCards())
+        media.play(null)
+        assertEquals(emptyList<GlanceCard>(), mediaCards())
+    }
+
+    @Test
+    fun `paused media keeps its card so it can be resumed`() = runBlocking {
+        media.play(NowPlaying("pkg.music", title = "Song", artist = null, playing = false))
+        assertEquals(listOf(GlanceCard.Media("pkg.music", "Song", null, null, playing = false)), mediaCards())
+    }
+
+    @Test
+    fun `without notification access the media card is swapped for a tap to enable chip`() = runBlocking {
+        media.access = false
+        media.play(NowPlaying("pkg.music", title = "Song", artist = "Band", playing = true))
+        assertEquals(listOf(GlanceCard.Enable(GlanceCard.Feature.Media)), mediaCards())
+    }
+
+    @Test
+    fun `media card follows the screen time card`() {
+        val cards = layout.cards(
+            usageAccess = false, screenTime = null, mediaAccess = true,
+            nowPlaying = NowPlaying("pkg.music", title = "Song", artist = "Band", playing = true),
+        )
+        assertEquals(listOf(GlanceCard.Enable::class, GlanceCard.Media::class), cards.map { it::class })
     }
 }

@@ -12,7 +12,9 @@ import com.ukhirani.leanos.platform.IconSize
 import com.ukhirani.leanos.platform.FocusService
 import com.ukhirani.leanos.platform.InstalledApp
 import com.ukhirani.leanos.platform.InstalledAppsSource
+import com.ukhirani.leanos.platform.MediaSource
 import com.ukhirani.leanos.platform.NextAlarm
+import com.ukhirani.leanos.platform.NowPlaying
 import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.platform.SettingsStore
 import com.ukhirani.leanos.platform.UsageEvent
@@ -104,4 +106,20 @@ class FakeUsageSource(var access: Boolean = true) : UsageSource {
 
     override fun hasAccess() = access
     override fun events(since: Instant) = if (access) recorded.filter { !it.at.isBefore(since) } else emptyList()
+}
+
+class FakeMediaSource(var access: Boolean = true) : MediaSource {
+    private val state = MutableStateFlow<NowPlaying?>(null)
+    override val nowPlaying: Flow<NowPlaying?> = state
+    val sent = mutableListOf<String>()
+
+    fun play(media: NowPlaying?) {
+        state.value = media
+    }
+
+    override fun hasAccess() = access
+    override fun playPause() { sent += "playPause" }
+    override fun next() { sent += "next" }
+    override fun previous() { sent += "previous" }
+    override fun open() { sent += "open" }
 }

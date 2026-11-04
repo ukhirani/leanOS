@@ -41,6 +41,7 @@ import com.ukhirani.leanos.home.HomeLayout
 import com.ukhirani.leanos.home.HomeScreen
 import com.ukhirani.leanos.platform.AndroidAlarmSource
 import com.ukhirani.leanos.platform.AndroidBatterySource
+import com.ukhirani.leanos.platform.AndroidMediaSource
 import com.ukhirani.leanos.platform.AndroidUsageSource
 import com.ukhirani.leanos.platform.FocusAccessibilityService
 import com.ukhirani.leanos.platform.DataStoreSettingsStore
@@ -75,6 +76,8 @@ class HomeActivity : ComponentActivity() {
     private val screenTime by lazy { ScreenTime(usageSource, SystemClockSource, packageName) }
     private var usageAccess by mutableStateOf(false)
     private var screenTimeToday by mutableStateOf<ScreenTimeToday?>(null)
+    private val mediaSource by lazy { AndroidMediaSource(this) }
+    private var mediaAccess by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -94,6 +97,7 @@ class HomeActivity : ComponentActivity() {
                     homeClock, settingsStore, homeGestures, homeLayout, alarmSource, batterySource,
                     onSwipeUp = openDrawer, onOpenSettings = openSettings,
                     usageAccess = usageAccess, screenTime = screenTimeToday,
+                    mediaSource = mediaSource, mediaAccess = mediaAccess,
                 ) {
                     FavoritesRow(favorites, installedApps::icon, installedApps::launch, showMenu, iconSize)
                 }
@@ -150,6 +154,7 @@ class HomeActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         usageAccess = usageSource.hasAccess()
+        mediaAccess = mediaSource.hasAccess()
         thread { screenTime.today().let { runOnUiThread { screenTimeToday = it } } }
     }
 
