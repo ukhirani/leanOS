@@ -7,10 +7,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.ukhirani.leanos.home.GlanceFormat
 import com.ukhirani.leanos.home.HomeClock
+import com.ukhirani.leanos.home.HomeGestures
 import com.ukhirani.leanos.home.HomeLayout
 import com.ukhirani.leanos.home.HomeScreen
 import com.ukhirani.leanos.platform.AndroidAlarmSource
 import com.ukhirani.leanos.platform.AndroidBatterySource
+import com.ukhirani.leanos.platform.FocusAccessibilityService
 import com.ukhirani.leanos.platform.DataStoreSettingsStore
 import com.ukhirani.leanos.platform.SystemClockSource
 import com.ukhirani.leanos.ui.LeanTheme
@@ -19,6 +21,7 @@ class HomeActivity : ComponentActivity() {
     // Wiring lives here: real platform sources in, logic and UI out.
     private val settingsStore by lazy { DataStoreSettingsStore(this) }
     private val homeClock = HomeClock(SystemClockSource)
+    private val homeGestures = HomeGestures(FocusAccessibilityService)
     private val homeLayout = HomeLayout(GlanceFormat(SystemClockSource))
     private val alarmSource by lazy { AndroidAlarmSource(this) }
     private val batterySource by lazy { AndroidBatterySource(this) }
@@ -30,7 +33,7 @@ class HomeActivity : ComponentActivity() {
             LeanTheme {
                 // Back on home does nothing: a launcher has nowhere to go back to.
                 BackHandler {}
-                HomeScreen(homeClock, settingsStore, homeLayout, alarmSource, batterySource)
+                HomeScreen(homeClock, settingsStore, homeGestures, homeLayout, alarmSource, batterySource)
             }
         }
     }

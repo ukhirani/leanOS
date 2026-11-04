@@ -36,6 +36,7 @@ import kotlinx.coroutines.delay
 fun HomeScreen(
     homeClock: HomeClock,
     settingsStore: SettingsStore,
+    gestures: HomeGestures,
     homeLayout: HomeLayout,
     alarmSource: AlarmSource,
     batterySource: BatterySource,
@@ -44,6 +45,14 @@ fun HomeScreen(
     val alarm by alarmSource.nextAlarm.collectAsState(initial = null)
     val battery by batterySource.battery.collectAsState(initial = null)
     val context = LocalContext.current
+    var showFocusPrompt by remember { mutableStateOf(false) }
+    val onSwipeDown = remember(gestures) {
+        { showFocusPrompt = gestures.onSwipeDown() == GestureOutcome.EnableServicePrompt }
+    }
+    val onDoubleTap = remember(gestures) {
+        { showFocusPrompt = gestures.onDoubleTap() == GestureOutcome.EnableServicePrompt }
+    }
+    if (showFocusPrompt) FocusServicePrompt(onDismiss = { showFocusPrompt = false })
     var time by remember(settings) { mutableStateOf(homeClock.text(settings)) }
     LaunchedEffect(settings) {
         while (true) {
@@ -57,6 +66,8 @@ fun HomeScreen(
             .fillMaxSize()
             // Light scrim over the wallpaper so text keeps its contrast.
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.35f))
+            // Swipe up (drawer) and long-press (settings) plug into this same modifier.
+            .homeGestures(onSwipeDown = onSwipeDown, onDoubleTap = onDoubleTap)
             .safeDrawingPadding(),
     ) {
         Column(Modifier.align(Alignment.TopCenter).padding(top = 72.dp), horizontalAlignment = Alignment.CenterHorizontally) {
