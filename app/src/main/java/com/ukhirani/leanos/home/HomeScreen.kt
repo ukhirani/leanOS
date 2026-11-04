@@ -1,6 +1,8 @@
 package com.ukhirani.leanos.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,11 +21,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ukhirani.leanos.platform.AlarmSource
 import com.ukhirani.leanos.platform.BackgroundMode
+import com.ukhirani.leanos.platform.BatterySource
 import com.ukhirani.leanos.platform.ClockStyle
 import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.platform.SettingsStore
@@ -35,9 +40,16 @@ fun HomeScreen(
     homeClock: HomeClock,
     settingsStore: SettingsStore,
     gestures: HomeGestures,
+    homeLayout: HomeLayout,
+    alarmSource: AlarmSource,
+    batterySource: BatterySource,
+    onSwipeUp: () -> Unit = {},
     onOpenSettings: (() -> Unit)? = null,
 ) {
     val settings by settingsStore.settings.collectAsState(initial = Settings())
+    val alarm by alarmSource.nextAlarm.collectAsState(initial = null)
+    val battery by batterySource.battery.collectAsState(initial = null)
+    val context = LocalContext.current
     var showFocusPrompt by remember { mutableStateOf(false) }
     val onSwipeDown = remember(gestures) {
         { showFocusPrompt = gestures.onSwipeDown() == GestureOutcome.EnableServicePrompt }
@@ -65,11 +77,20 @@ fun HomeScreen(
                 },
             )
             // Swipe up (drawer) and long-press (settings) plug into this same modifier.
-            .homeGestures(onSwipeDown = onSwipeDown, onDoubleTap = onDoubleTap, onLongPress = onOpenSettings)
+            .homeGestures(onSwipeDown = onSwipeDown, onDoubleTap = onDoubleTap, onSwipeUp = onSwipeUp, onLongPress = onOpenSettings)
             .safeDrawingPadding(),
     ) {
         ClockGlow(Modifier.align(Alignment.TopCenter).padding(top = 16.dp).fillMaxWidth().height(240.dp))
-        Clock(time, settings.clockStyle, Modifier.align(Alignment.TopCenter).padding(top = 72.dp))
+        Column(Modifier.align(Alignment.TopCenter).padding(top = 72.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Clock(
+                time,
+                settings.clockStyle,
+                Modifier.clickable(onClickLabel = "Open alarms") { context.openAlarmApp(alarm) },
+            )
+            // Recomputed each minute with the clock, so the alarm countdown and date stay current.
+            val chips = remember(time, settings, alarm, battery) { homeLayout.chips(settings, alarm, battery) }
+            GlanceChipRow(chips, alarm, Modifier.padding(top = 8.dp, start = 16.dp, end = 16.dp))
+        }
     }
 }
 

@@ -2,11 +2,17 @@ package com.ukhirani.leanos
 
 import com.ukhirani.leanos.platform.Accent
 import com.ukhirani.leanos.platform.BackgroundMode
+import com.ukhirani.leanos.platform.AlarmSource
+import com.ukhirani.leanos.platform.BatterySource
+import com.ukhirani.leanos.platform.BatteryState
 import com.ukhirani.leanos.platform.ClockSource
 import com.ukhirani.leanos.platform.ClockStyle
 import com.ukhirani.leanos.platform.ColorSource
 import com.ukhirani.leanos.platform.IconSize
 import com.ukhirani.leanos.platform.FocusService
+import com.ukhirani.leanos.platform.InstalledApp
+import com.ukhirani.leanos.platform.InstalledAppsSource
+import com.ukhirani.leanos.platform.NextAlarm
 import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.platform.SettingsStore
 import java.time.ZonedDateTime
@@ -18,6 +24,24 @@ class FakeClockSource(var current: ZonedDateTime) : ClockSource {
     constructor(iso: String) : this(ZonedDateTime.parse(iso))
 
     override fun now(): ZonedDateTime = current
+}
+
+class FakeAlarmSource(initial: NextAlarm? = null) : AlarmSource {
+    private val state = MutableStateFlow(initial)
+    override val nextAlarm: Flow<NextAlarm?> = state
+
+    fun set(alarm: NextAlarm?) {
+        state.value = alarm
+    }
+}
+
+class FakeBatterySource(initial: BatteryState) : BatterySource {
+    private val state = MutableStateFlow(initial)
+    override val battery: Flow<BatteryState> = state
+
+    fun set(battery: BatteryState) {
+        state.value = battery
+    }
 }
 
 class FakeSettingsStore(initial: Settings = Settings()) : SettingsStore {
@@ -48,4 +72,15 @@ class FakeFocusService(var running: Boolean = true) : FocusService {
         performed += action
         return true
     }
+}
+
+fun app(label: String, packageName: String = "pkg." + label.lowercase().replace(" ", "")) =
+    InstalledApp(packageName = packageName, activityName = "$packageName.Main", label = label)
+
+class FakeInstalledAppsSource(vararg initial: InstalledApp) : InstalledAppsSource {
+    private val state = MutableStateFlow(initial.toList())
+    override val apps: Flow<List<InstalledApp>> = state
+
+    fun install(app: InstalledApp) = state.update { it + app }
+    fun uninstall(packageName: String) = state.update { apps -> apps.filter { it.packageName != packageName } }
 }
