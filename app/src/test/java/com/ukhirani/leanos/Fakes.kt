@@ -72,6 +72,9 @@ class FakeSettingsStore(initial: Settings = Settings()) : SettingsStore {
         state.update { it.copy(weatherCity = city, weather = null) }
     override suspend fun setWeather(weather: com.ukhirani.leanos.platform.CurrentWeather) =
         state.update { it.copy(weather = weather) }
+    override suspend fun setDailyLimit(packageName: String, minutes: Int?) = state.update {
+        it.copy(dailyLimits = if (minutes == null) it.dailyLimits - packageName else it.dailyLimits + (packageName to minutes))
+    }
     override suspend fun setGrayscaleIcons(enabled: Boolean) = state.update { it.copy(grayscaleIcons = enabled) }
     override suspend fun setHidden(packages: Set<String>) = state.update { it.copy(hidden = packages) }
 }

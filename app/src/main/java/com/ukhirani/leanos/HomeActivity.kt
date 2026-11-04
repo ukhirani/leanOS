@@ -52,6 +52,8 @@ import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.platform.SystemClockSource
 import com.ukhirani.leanos.settings.AboutScreen
 import com.ukhirani.leanos.settings.HiddenAppsScreen
+import com.ukhirani.leanos.settings.LimitDialog
+import com.ukhirani.leanos.settings.LimitsScreen
 import com.ukhirani.leanos.settings.SettingsScreen
 import com.ukhirani.leanos.ui.LeanTheme
 import com.ukhirani.leanos.usage.ScreenTime
@@ -60,7 +62,7 @@ import kotlin.concurrent.thread
 import androidx.lifecycle.lifecycleScope
 
 /** Destinations layered over home; null means home itself. */
-private enum class SettingsPage { Settings, Hidden, About, WeatherCity }
+private enum class SettingsPage { Settings, Hidden, About, Limits, WeatherCity }
 
 class HomeActivity : ComponentActivity() {
     // Wiring lives here: real platform sources in, logic and UI out.
@@ -98,6 +100,7 @@ class HomeActivity : ComponentActivity() {
 
     private val mediaSource by lazy { AndroidMediaSource(this) }
     private var mediaAccess by mutableStateOf(false)
+    private var limitFor by mutableStateOf<InstalledApp?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -143,6 +146,7 @@ class HomeActivity : ComponentActivity() {
                             onOpenHidden = { settingsPage = SettingsPage.Hidden },
                             onOpenAbout = { settingsPage = SettingsPage.About },
                             onOpenWeatherCity = { settingsPage = SettingsPage.WeatherCity },
+                            onOpenLimits = { settingsPage = SettingsPage.Limits },
                         )
                     }
                     SettingsPage.WeatherCity -> {
@@ -153,6 +157,17 @@ class HomeActivity : ComponentActivity() {
                                 refreshWeather { settingsStore.setWeatherCity(city) }
                                 settingsPage = SettingsPage.Settings
                             },
+                            onBack = { settingsPage = SettingsPage.Settings },
+                        )
+                    }
+                    SettingsPage.Limits -> {
+                        BackHandler { settingsPage = SettingsPage.Settings }
+                        val installed by installedApps.apps.collectAsState(initial = emptyList())
+                        LimitsScreen(
+                            settingsStore,
+                            labelOf = { pkg -> installed.firstOrNull { it.packageName == pkg }?.label ?: pkg },
+                            usage = screenTimeToday,
+                            durationText = GlanceFormat(SystemClockSource)::durationText,
                             onBack = { settingsPage = SettingsPage.Settings },
                         )
                     }
@@ -176,6 +191,11 @@ class HomeActivity : ComponentActivity() {
                     val isFavorite = favorites.any { it.packageName == app.packageName }
                     AppActionsSheet(app, appActions(app, isFavorite, scope, snackbar)) { menuFor = null }
                 }
+                limitFor?.let { app ->
+                    LimitDialog(app.label, settings.dailyLimits[app.packageName], onDismiss = { limitFor = null }) { minutes ->
+                        scope.launch { settingsStore.setDailyLimit(app.packageName, minutes) }
+                    }
+                }
                 SnackbarHost(snackbar, Modifier.fillMaxSize().safeDrawingPadding().wrapContentHeight(Alignment.Bottom))
             } }
         }
@@ -191,6 +211,7 @@ class HomeActivity : ComponentActivity() {
             }
         },
         AppAction("Hide") { scope.launch { appCatalog.setHidden(app, true) } },
+        AppAction(getString(R.string.limit_set)) { limitFor = app },
         AppAction("App info") { installedApps.openAppInfo(app) },
         AppAction("Uninstall") { installedApps.uninstall(app) },
     )

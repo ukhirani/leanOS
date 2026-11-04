@@ -17,6 +17,8 @@ data class Settings(
     val weatherCity: City? = null,
     /** The last weather fetched for [weatherCity]; null until the first fetch succeeds. */
     val weather: CurrentWeather? = null,
+    /** Daily limits: package name to minutes per day. */
+    val dailyLimits: Map<String, Int> = emptyMap(),
     /** App icons drawn in grayscale (less eye candy, less pull to open apps). */
     val grayscaleIcons: Boolean = true,
     /** Hidden apps' package names: kept out of the drawer, search and favorites. */
@@ -58,6 +60,9 @@ interface SettingsStore {
     /** Picking a new city (or clearing it) drops the cached weather of the old one. */
     suspend fun setWeatherCity(city: City?)
     suspend fun setWeather(weather: CurrentWeather)
+
+    /** Sets [packageName]'s daily limit in minutes; null removes it. */
+    suspend fun setDailyLimit(packageName: String, minutes: Int?)
     suspend fun setGrayscaleIcons(enabled: Boolean)
     suspend fun setHidden(packages: Set<String>)
 }

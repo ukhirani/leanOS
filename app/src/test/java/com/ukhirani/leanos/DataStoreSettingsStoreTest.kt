@@ -90,7 +90,7 @@ class DataStoreSettingsStoreTest {
         first.setUseFahrenheit(true)
         first.setWeatherCity(city)
         first.setWeather(weather)
-        scopes.forEach { it.cancel() }
+        scopes.forEach { it.coroutineContext[Job]!!.cancelAndJoin() }
 
         val reopened = DataStoreSettingsStore(dataStore(file)).settings.first()
         assertEquals(Triple(true, city, weather), Triple(reopened.useFahrenheit, reopened.weatherCity, reopened.weather))
@@ -103,6 +103,19 @@ class DataStoreSettingsStoreTest {
         store.setWeather(com.ukhirani.leanos.platform.CurrentWeather(9.0, 0, java.time.Instant.EPOCH))
         store.setWeatherCity(com.ukhirani.leanos.platform.City("Oslo, Norway", 59.91, 10.75))
         assertEquals(null, store.settings.first().weather)
+    }
+
+    @Test
+    fun `daily limits can be set, changed and removed, and survive a restart`() = runBlocking {
+        val file = File(tmp.root, "d.preferences_pb")
+        val first = DataStoreSettingsStore(dataStore(file))
+        first.setDailyLimit("video", 30)
+        first.setDailyLimit("chat", 15)
+        first.setDailyLimit("video", 45)
+        first.setDailyLimit("chat", null)
+        scopes.forEach { it.coroutineContext[Job]!!.cancelAndJoin() }
+
+        assertEquals(mapOf("video" to 45), DataStoreSettingsStore(dataStore(file)).settings.first().dailyLimits)
     }
 
     @Test

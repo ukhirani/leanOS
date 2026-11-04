@@ -48,6 +48,7 @@ fun SettingsScreen(
     onOpenHidden: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenWeatherCity: () -> Unit = {},
+    onOpenLimits: () -> Unit = {},
 ) {
     val settings by settingsStore.settings.collectAsState(initial = Settings())
     val scope = rememberCoroutineScope()
@@ -122,6 +123,10 @@ fun SettingsScreen(
             ListItem(
                 headlineContent = { Text(stringResource(R.string.hidden_apps_title)) },
                 modifier = Modifier.clickable(onClick = onOpenHidden),
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.limits_title)) },
+                modifier = Modifier.clickable(onClick = onOpenLimits),
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.about_title)) },

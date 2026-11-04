@@ -31,9 +31,25 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
             useFahrenheit = prefs[USE_FAHRENHEIT] ?: defaults.useFahrenheit,
             weatherCity = prefs.weatherCity(),
             weather = prefs.weather(),
+            dailyLimits = prefs.dailyLimits(),
             grayscaleIcons = prefs[GRAYSCALE_ICONS] ?: defaults.grayscaleIcons,
             hidden = prefs[HIDDEN].orEmpty(),
         )
+    }
+
+    // One "package=minutes" line per limit.
+    private fun Preferences.dailyLimits(): Map<String, Int> =
+        this[DAILY_LIMITS].orEmpty().lines().mapNotNull { line ->
+            val (pkg, minutes) = line.split('=').takeIf { it.size == 2 } ?: return@mapNotNull null
+            minutes.toIntOrNull()?.let { pkg to it }
+        }.toMap()
+
+    override suspend fun setDailyLimit(packageName: String, minutes: Int?) {
+        store.edit { prefs ->
+            val limits = prefs.dailyLimits().toMutableMap()
+            if (minutes == null) limits.remove(packageName) else limits[packageName] = minutes
+            prefs[DAILY_LIMITS] = limits.entries.joinToString("\n") { "${it.key}=${it.value}" }
+        }
     }
 
     override suspend fun setUse24Hour(enabled: Boolean) {
@@ -106,6 +122,7 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
         val USE_FAHRENHEIT = booleanPreferencesKey("use_fahrenheit")
         val WEATHER_CITY = stringPreferencesKey("weather_city")
         val WEATHER = stringPreferencesKey("weather")
+        val DAILY_LIMITS = stringPreferencesKey("daily_limits")
         val GRAYSCALE_ICONS = booleanPreferencesKey("grayscale_icons")
         val HIDDEN = stringSetPreferencesKey("hidden")
     }
