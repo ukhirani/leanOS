@@ -120,8 +120,11 @@ fun HomeScreen(
 @Composable
 private fun Clock(time: String, style: ClockStyle, modifier: Modifier = Modifier) {
     BoxWithConstraints(modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-        // shortcut: sized from the screen width in dp, so it ignores the system font scale (never clips at 1.3x); scale it by a clamped fontScale if users want that.
-        val size = with(LocalDensity.current) { (maxWidth / 3.4f).toSp() }
+        // shortcut: sized from the screen width in dp, so it ignores the system font scale; scale it by a clamped fontScale if users want that.
+        val base = with(LocalDensity.current) { (maxWidth / 3.4f).toSp() }
+        // The wide styles overflow at that size: shrink step by step until the whole time fits on one line.
+        var shrink by remember(time, style, maxWidth) { mutableStateOf(1f) }
+        val size = base * shrink
         Text(
             text = time,
             modifier = Modifier.fillMaxWidth(),
@@ -134,6 +137,7 @@ private fun Clock(time: String, style: ClockStyle, modifier: Modifier = Modifier
             ),
             maxLines = 1,
             softWrap = false,
+            onTextLayout = { if (it.didOverflowWidth && shrink > 0.3f) shrink *= 0.92f },
         )
     }
 }

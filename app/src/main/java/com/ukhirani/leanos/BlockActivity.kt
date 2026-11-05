@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -53,34 +54,7 @@ class BlockActivity : ComponentActivity() {
             val settings by settingsStore.settings.collectAsState(initial = Settings())
             LeanTheme(settings) {
                 BackHandler { goHome() }
-                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
-                    Column(
-                        Modifier.safeDrawingPadding().padding(32.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(label, style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
-                        Text(
-                            stringResource(R.string.block_used_today, used),
-                            style = MaterialTheme.typography.bodyLarge,
-                            textAlign = TextAlign.Center,
-                        )
-                        Text(
-                            stringResource(R.string.block_unlocks),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                        )
-                        Button(onClick = ::goHome, modifier = Modifier.padding(top = 16.dp).heightIn(min = 48.dp)) {
-                            Text(stringResource(R.string.block_go_home))
-                        }
-                        if (canExtend) {
-                            TextButton(onClick = { extend(settingsStore, pkg) }, modifier = Modifier.heightIn(min = 48.dp)) {
-                                Text(stringResource(R.string.block_extend))
-                            }
-                        }
-                    }
-                }
+                BlockScreen(label, used, canExtend, onGoHome = ::goHome, onExtend = { extend(settingsStore, pkg) })
             }
         }
     }
@@ -109,5 +83,38 @@ class BlockActivity : ComponentActivity() {
                 .putExtra(EXTRA_PACKAGE, packageName)
                 .putExtra(EXTRA_USED_MS, blocked.used.toMillis())
                 .putExtra(EXTRA_CAN_EXTEND, blocked.canExtend)
+    }
+}
+
+/** What the Block screen shows for [label]; "5 more minutes" appears only when [canExtend]. */
+@Composable
+fun BlockScreen(label: String, used: String, canExtend: Boolean, onGoHome: () -> Unit, onExtend: () -> Unit) {
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+        Column(
+            Modifier.safeDrawingPadding().padding(32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(label, style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
+            Text(
+                stringResource(R.string.block_used_today, used),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                stringResource(R.string.block_unlocks),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            Button(onClick = onGoHome, modifier = Modifier.padding(top = 16.dp).heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.block_go_home))
+            }
+            if (canExtend) {
+                TextButton(onClick = onExtend, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.block_extend))
+                }
+            }
+        }
     }
 }

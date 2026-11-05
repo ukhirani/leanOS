@@ -49,6 +49,10 @@ android {
     buildFeatures {
         compose = true
     }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 kotlin {
@@ -66,4 +70,8 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.2.0")
 
     testImplementation("junit:junit:4.13.2")
+    // Design-review screenshots (ScreenshotsTest): Compose rendered on the JVM.
+    testImplementation("org.robolectric:robolectric:4.16")
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
