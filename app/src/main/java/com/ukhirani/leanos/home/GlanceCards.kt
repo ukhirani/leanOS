@@ -124,7 +124,7 @@ private fun MediaRow(card: GlanceCard.Media, media: MediaSource?) {
 @Composable
 private fun MediaButton(icon: Int, description: String, onClick: () -> Unit) {
     Box(Modifier.size(48.dp).springPress(onClick, role = Role.Button), contentAlignment = Alignment.Center) {
-        Icon(painterResource(icon), contentDescription = description, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(painterResource(icon), contentDescription = description, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface)
     }
 }
 

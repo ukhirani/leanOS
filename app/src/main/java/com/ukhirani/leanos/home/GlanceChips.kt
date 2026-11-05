@@ -33,14 +33,14 @@ fun GlanceChipRow(chips: List<GlanceChip>, alarm: NextAlarm?, modifier: Modifier
                 GlanceChip.Kind.Battery -> null
             }
             Row(Modifier.heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+                // The separator leads its segment inside the same item, so it can never end a line.
+                if (index > 0) InfoText("·", Modifier.padding(horizontal = 8.dp))
                 Box(
                     (if (onClick != null) Modifier.springPress(onClick) else Modifier)
                         .heightIn(min = 48.dp)
                         .semantics { contentDescription = chip.description },
                     contentAlignment = Alignment.Center,
                 ) { InfoText(chip.text) }
-                // The separator rides with its segment, so a wrapped line never starts with one.
-                if (index < chips.lastIndex) InfoText("·", Modifier.padding(horizontal = 8.dp))
             }
         }
     }

@@ -2,6 +2,7 @@ package com.ukhirani.leanos.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -83,7 +84,7 @@ fun HomeScreen(
             // Light scrim over the wallpaper so text keeps its contrast, or a solid Material You fill.
             .background(
                 when (settings.background) {
-                    BackgroundMode.WALLPAPER -> MaterialTheme.colorScheme.surface.copy(alpha = 0.35f)
+                    BackgroundMode.WALLPAPER -> MaterialTheme.colorScheme.surface.copy(alpha = if (isSystemInDarkTheme()) 0.65f else 0.35f)
                     BackgroundMode.SOLID -> MaterialTheme.colorScheme.surface
                 },
             )
