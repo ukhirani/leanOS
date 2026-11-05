@@ -32,7 +32,10 @@ class FocusAccessibilityService : AccessibilityService() {
     }
     private val settingsStore by lazy { DataStoreSettingsStore(this) }
     private val handler = Handler(Looper.getMainLooper())
-    @Volatile private var dailyLimits = emptyMap<String, Int>()
+    // Null until the first store read lands; events before that check on demand instead of letting an app slip by.
+    @Volatile private var dailyLimits: Map<String, Int>? = null
+    // shortcut: one PackageManager lookup per (package, class) on the main thread, then cached; move off-thread if windows get slow to open.
+    private val activityChecks = HashMap<Pair<String, String>, Boolean>()
 
     override fun onServiceConnected() {
         instance = this
@@ -48,7 +51,7 @@ class FocusAccessibilityService : AccessibilityService() {
         if (foreground.value == pkg) return
         foreground.value = pkg
         handler.removeCallbacksAndMessages(null) // the previous app's mid-session check
-        if (pkg != packageName && pkg in dailyLimits) scope.launch { enforceLimit(pkg) }
+        if (pkg != packageName && dailyLimits?.containsKey(pkg) != false) scope.launch { enforceLimit(pkg) }
     }
 
     // Reads settings fresh, so an extension granted just now on the Block screen counts.
@@ -67,7 +70,9 @@ class FocusAccessibilityService : AccessibilityService() {
     }
 
     private fun isActivity(pkg: String, className: String?): Boolean = className != null &&
-        runCatching { packageManager.getActivityInfo(ComponentName(pkg, className), 0) }.isSuccess
+        activityChecks.getOrPut(pkg to className) {
+            runCatching { packageManager.getActivityInfo(ComponentName(pkg, className), 0) }.isSuccess
+        }
 
     override fun onInterrupt() = Unit
 
