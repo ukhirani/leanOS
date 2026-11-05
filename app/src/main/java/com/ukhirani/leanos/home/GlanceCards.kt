@@ -200,7 +200,7 @@ private fun Context.appLabel(packageName: String): String = try {
 }
 
 /** Our own usage-access page where the system offers one, else the full list. */
-private fun Context.openUsageAccessSettings() {
+internal fun Context.openUsageAccessSettings() {
     val direct = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS, Uri.parse("package:$packageName"))
     for (intent in listOf(direct, Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))) {
         try {
@@ -212,7 +212,7 @@ private fun Context.openUsageAccessSettings() {
 }
 
 /** Our own notification-access page where the system offers one, else the full list. */
-private fun Context.openNotificationAccessSettings() {
+internal fun Context.openNotificationAccessSettings() {
     val listener = ComponentName(this, MediaListenerService::class.java).flattenToString()
     val direct = Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
         .putExtra(Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME, listener)
