@@ -81,6 +81,7 @@ class FakeSettingsStore(initial: Settings = Settings()) : SettingsStore {
         state.update { it.copy(cardOrder = order, hiddenCards = hidden) }
     override suspend fun setLimitExtension(packageName: String, at: java.time.Instant) =
         state.update { it.copy(limitExtensions = it.limitExtensions + (packageName to at)) }
+    override suspend fun setOnboardingCompleted(completed: Boolean) = state.update { it.copy(onboardingCompleted = completed) }
 }
 
 class FakeFocusService(var running: Boolean = true) : FocusService {

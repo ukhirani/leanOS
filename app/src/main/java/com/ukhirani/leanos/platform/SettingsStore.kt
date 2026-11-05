@@ -31,6 +31,8 @@ data class Settings(
     val cardOrder: List<GlanceCard.Feature> = GlanceCard.Feature.entries,
     /** Glance cards the user switched off. */
     val hiddenCards: Set<GlanceCard.Feature> = emptySet(),
+    /** The first-run walkthrough has been finished or skipped through; false shows it. */
+    val onboardingCompleted: Boolean = false,
 )
 
 /** Clock style presets: each one is a set of Google Sans Flex axes, never a different font. */
@@ -78,4 +80,7 @@ interface SettingsStore {
 
     /** Records that [packageName] was given its daily-limit extension at [at]. */
     suspend fun setLimitExtension(packageName: String, at: Instant)
+
+    /** Remembers that first-run setup is done; false re-runs it. */
+    suspend fun setOnboardingCompleted(completed: Boolean)
 }

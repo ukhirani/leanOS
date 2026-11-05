@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="setup_title">Set up LeanOS</string>
+    <string name="setup_skip">Skip</string>
+    <string name="setup_rerun">Run first-run setup again</string>
+    <string name="setup_launcher_why">LeanOS needs to be your home app to replace your launcher. Nothing leaves your phone.</string>
+    <string name="setup_launcher_action">Make LeanOS my home app</string>
+    <string name="setup_usage_why">Usage access lets LeanOS show screen time and enforce daily limits. Usage data stays on your phone.</string>
+    <string name="setup_usage_action">Open usage access</string>
+    <string name="setup_notification_why">Notification access lets the media card see what is playing and control it. LeanOS never reads your notifications, and nothing leaves your phone.</string>
+    <string name="setup_notification_action">Open notification access</string>
+    <string name="setup_accessibility_why">The Focus accessibility service powers double-tap lock, the notification swipe and daily limits. It sees which app is in front and nothing else, and nothing leaves your phone.</string>
+    <string name="setup_accessibility_action">Open accessibility settings</string>
+</resources>

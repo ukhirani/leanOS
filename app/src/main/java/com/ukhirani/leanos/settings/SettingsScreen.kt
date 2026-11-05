@@ -50,6 +50,7 @@ fun SettingsScreen(
     onOpenWeatherCity: () -> Unit = {},
     onOpenLimits: () -> Unit = {},
     onOpenGlanceCards: () -> Unit = {},
+    onRerunSetup: () -> Unit = {},
 ) {
     val settings by settingsStore.settings.collectAsState(initial = Settings())
     val scope = rememberCoroutineScope()
@@ -132,6 +133,10 @@ fun SettingsScreen(
             ListItem(
                 headlineContent = { Text(stringResource(R.string.limits_title)) },
                 modifier = Modifier.clickable(onClick = onOpenLimits),
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.setup_rerun)) },
+                modifier = Modifier.clickable(onClick = onRerunSetup),
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.about_title)) },

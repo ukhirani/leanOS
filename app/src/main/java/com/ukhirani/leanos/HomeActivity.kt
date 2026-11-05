@@ -3,7 +3,15 @@ package com.ukhirani.leanos
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import android.app.role.RoleManager
 import androidx.activity.compose.BackHandler
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
+import com.ukhirani.leanos.home.openNotificationAccessSettings
+import com.ukhirani.leanos.home.openUsageAccessSettings
+import com.ukhirani.leanos.onboarding.SetupScreen
+import com.ukhirani.leanos.onboarding.SetupStep
+import com.ukhirani.leanos.onboarding.nextSetupStep
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
@@ -102,6 +110,32 @@ class HomeActivity : ComponentActivity() {
     private var mediaAccess by mutableStateOf(false)
     private var limitFor by mutableStateOf<InstalledApp?>(null)
 
+    // First-run setup: what is granted is re-read on every resume, so coming back from a system page advances.
+    private var setupGranted by mutableStateOf(emptySet<SetupStep>())
+    private var setupSkipped by mutableStateOf(emptySet<SetupStep>())
+    private val roleRequest = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { readSetupAccess() }
+
+    private fun readSetupAccess() {
+        setupGranted = buildSet {
+            if (getSystemService(RoleManager::class.java).isRoleHeld(RoleManager.ROLE_HOME)) add(SetupStep.DefaultLauncher)
+            if (usageSource.hasAccess()) add(SetupStep.UsageAccess)
+            if (mediaSource.hasAccess()) add(SetupStep.NotificationAccess)
+            if (FocusAccessibilityService.isRunning()) add(SetupStep.Accessibility)
+        }
+    }
+
+    private fun startSetupAction(step: SetupStep) {
+        when (step) {
+            SetupStep.DefaultLauncher ->
+                roleRequest.launch(getSystemService(RoleManager::class.java).createRequestRoleIntent(RoleManager.ROLE_HOME))
+            SetupStep.UsageAccess -> openUsageAccessSettings()
+            SetupStep.NotificationAccess -> openNotificationAccessSettings()
+            SetupStep.Accessibility ->
+                startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            SetupStep.WeatherCity -> Unit
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -148,6 +182,11 @@ class HomeActivity : ComponentActivity() {
                             onOpenWeatherCity = { settingsPage = SettingsPage.WeatherCity },
                             onOpenLimits = { settingsPage = SettingsPage.Limits },
                             onOpenGlanceCards = { settingsPage = SettingsPage.GlanceCards },
+                            onRerunSetup = {
+                                setupSkipped = emptySet()
+                                settingsPage = null
+                                scope.launch { settingsStore.setOnboardingCompleted(false) }
+                            },
                         )
                     }
                     SettingsPage.WeatherCity -> {
@@ -201,7 +240,24 @@ class HomeActivity : ComponentActivity() {
                         scope.launch { settingsStore.setDailyLimit(app.packageName, minutes) }
                     }
                 }
-                SnackbarHost(snackbar, Modifier.fillMaxSize().safeDrawingPadding().wrapContentHeight(Alignment.Bottom))
+                // Null until the store has loaded, so a returning user never sees a flash of setup.
+                val stored by settingsStore.settings.collectAsState(initial = null)
+                if (stored?.onboardingCompleted == false) {
+                    BackHandler {}
+                    val granted = if (stored?.weatherCity != null) setupGranted + SetupStep.WeatherCity else setupGranted
+                    val step = nextSetupStep(granted, setupSkipped)
+                    if (step == null) {
+                        LaunchedEffect(Unit) { settingsStore.setOnboardingCompleted(true) }
+                    } else {
+                        SetupScreen(
+                            step, weatherSource,
+                            onAction = { startSetupAction(step) },
+                            onPickCity = { city -> refreshWeather { settingsStore.setWeatherCity(city) } },
+                            onSkip = { setupSkipped = setupSkipped + step },
+                        )
+                    }
+                }
+                SnackbarHost(snackbar,Modifier.fillMaxSize().safeDrawingPadding().wrapContentHeight(Alignment.Bottom))
             } }
         }
     }
@@ -226,6 +282,7 @@ class HomeActivity : ComponentActivity() {
         super.onResume()
         usageAccess = usageSource.hasAccess()
         mediaAccess = mediaSource.hasAccess()
+        readSetupAccess()
         thread { screenTime.today().let { runOnUiThread { screenTimeToday = it } } }
         refreshWeather()
     }

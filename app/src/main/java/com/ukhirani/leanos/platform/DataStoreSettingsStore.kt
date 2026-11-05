@@ -38,6 +38,7 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
             limitExtensions = prefs.limitExtensions(),
             cardOrder = prefs[CARD_ORDER]?.let { saved -> cardsIn(saved) }?.let { it + (defaults.cardOrder - it.toSet()) } ?: defaults.cardOrder,
             hiddenCards = cardsIn(prefs[HIDDEN_CARDS].orEmpty()).toSet(),
+            onboardingCompleted = prefs[ONBOARDING_COMPLETED] ?: defaults.onboardingCompleted,
         )
     }
 
@@ -78,6 +79,10 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
             val extensions = prefs.limitExtensions() + (packageName to at)
             prefs[LIMIT_EXTENSIONS] = extensions.entries.joinToString("\n") { "${it.key}=${it.value.toEpochMilli()}" }
         }
+    }
+
+    override suspend fun setOnboardingCompleted(completed: Boolean) {
+        store.edit { it[ONBOARDING_COMPLETED] = completed }
     }
 
     override suspend fun setUse24Hour(enabled: Boolean) {
@@ -156,5 +161,6 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
         val CARD_ORDER = stringPreferencesKey("card_order")
         val HIDDEN_CARDS = stringPreferencesKey("hidden_cards")
         val LIMIT_EXTENSIONS = stringPreferencesKey("limit_extensions")
+        val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
     }
 }
