@@ -1,14 +1,7 @@
 package com.ukhirani.leanos.drawer
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,7 +16,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -35,15 +27,14 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.ukhirani.leanos.R
 import com.ukhirani.leanos.platform.InstalledApp
+import com.ukhirani.leanos.ui.springPress
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -51,35 +42,11 @@ import kotlinx.coroutines.withContext
 data class AppAction(val label: String, val run: () -> Unit)
 
 /**
- * Tap and long-press for an app, with spring press feedback and a haptic tick. Handling the
- * long-press here consumes it, so the home screen's empty-space long-press never fires too.
+ * Tap and long-press for an app. Handling the long-press here consumes it, so the home screen's
+ * empty-space long-press never fires too.
  */
-@OptIn(ExperimentalFoundationApi::class)
 fun Modifier.appPress(onClick: () -> Unit, onLongPress: () -> Unit): Modifier = composed {
-    val haptics = LocalHapticFeedback.current
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        if (pressed) 0.92f else 1f,
-        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-        label = "press",
-    )
-    graphicsLayer { scaleX = scale; scaleY = scale }
-        .combinedClickable(
-            interactionSource = interaction,
-            indication = ripple(),
-            role = Role.Button,
-            onClickLabel = "Open",
-            onLongClickLabel = "App options",
-            onLongClick = {
-                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                onLongPress()
-            },
-            onClick = {
-                haptics.performHapticFeedback(HapticFeedbackType.VirtualKey)
-                onClick()
-            },
-        )
+    springPress(onClick, onLongPress, stringResource(R.string.app_open), stringResource(R.string.app_options))
 }
 
 /** Whether [AppIcon]s draw in grayscale; provided once from the settings at the root. */

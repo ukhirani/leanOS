@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import com.ukhirani.leanos.R
+import com.ukhirani.leanos.ui.springPress
 import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.platform.SettingsStore
 import com.ukhirani.leanos.usage.ScreenTimeToday
@@ -89,7 +90,7 @@ fun LimitsScreen(
                         supportingContent = {
                             Text(stringResource(R.string.limits_usage, durationText(used), durationText(Duration.ofMinutes(minutes.toLong()))))
                         },
-                        modifier = Modifier.clickable { editing = pkg },
+                        modifier = Modifier.springPress({ editing = pkg }),
                     )
                 }
             }

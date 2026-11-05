@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.ukhirani.leanos.R
+import com.ukhirani.leanos.ui.springPress
 import com.ukhirani.leanos.platform.City
 import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.platform.SettingsStore
@@ -106,7 +107,7 @@ fun CitySearch(weatherSource: WeatherSource, onPick: (City) -> Unit, modifier: M
             } else {
                 LazyColumn {
                     items(s.cities) { city ->
-                        ListItem(headlineContent = { Text(city.name) }, modifier = Modifier.clickable { onPick(city) })
+                        ListItem(headlineContent = { Text(city.name) }, modifier = Modifier.springPress({ onPick(city) }))
                     }
                 }
             }

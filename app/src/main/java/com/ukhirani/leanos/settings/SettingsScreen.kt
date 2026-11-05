@@ -31,6 +31,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ukhirani.leanos.R
+import com.ukhirani.leanos.ui.springPress
 import com.ukhirani.leanos.platform.Accent
 import com.ukhirani.leanos.platform.BackgroundMode
 import com.ukhirani.leanos.platform.ClockStyle
@@ -108,7 +109,7 @@ fun SettingsScreen(
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_weather_city)) },
                 supportingContent = { Text(settings.weatherCity?.name ?: stringResource(R.string.weather_city_not_set)) },
-                modifier = Modifier.clickable(onClick = onOpenWeatherCity),
+                modifier = Modifier.springPress(onOpenWeatherCity),
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_fahrenheit)) },
@@ -124,23 +125,23 @@ fun SettingsScreen(
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.glance_cards_title)) },
-                modifier = Modifier.clickable(onClick = onOpenGlanceCards),
+                modifier = Modifier.springPress(onOpenGlanceCards),
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.hidden_apps_title)) },
-                modifier = Modifier.clickable(onClick = onOpenHidden),
+                modifier = Modifier.springPress(onOpenHidden),
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.limits_title)) },
-                modifier = Modifier.clickable(onClick = onOpenLimits),
+                modifier = Modifier.springPress(onOpenLimits),
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.setup_rerun)) },
-                modifier = Modifier.clickable(onClick = onRerunSetup),
+                modifier = Modifier.springPress(onRerunSetup),
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.about_title)) },
-                modifier = Modifier.clickable(onClick = onOpenAbout),
+                modifier = Modifier.springPress(onOpenAbout),
             )
         }
     }

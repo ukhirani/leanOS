@@ -14,6 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ukhirani.leanos.R
+import com.ukhirani.leanos.ui.springPress
 import com.ukhirani.leanos.drawer.AppIcon
 import com.ukhirani.leanos.platform.InstalledApp
 
@@ -39,7 +40,7 @@ fun HiddenAppsScreen(
                         trailingContent = {
                             TextButton(onClick = { onUnhide(app) }) { Text(stringResource(R.string.hidden_apps_unhide)) }
                         },
-                        modifier = Modifier.clickable(onClickLabel = stringResource(R.string.hidden_apps_open)) { onOpen(app) },
+                        modifier = Modifier.springPress({ onOpen(app) }, onClickLabel = stringResource(R.string.hidden_apps_open)),
                     )
                 }
             }

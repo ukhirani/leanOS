@@ -29,6 +29,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.ukhirani.leanos.R
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.ImageBitmap
@@ -74,7 +76,7 @@ fun AppDrawer(
                 .fillMaxWidth()
                 .padding(16.dp)
                 .focusRequester(focus),
-            placeholder = { Text("Search apps") },
+            placeholder = { Text(stringResource(R.string.search_apps)) },
             singleLine = true,
             shape = RoundedCornerShape(28.dp),
             colors = TextFieldDefaults.colors(
