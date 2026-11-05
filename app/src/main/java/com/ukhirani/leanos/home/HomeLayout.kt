@@ -16,16 +16,24 @@ data class GlanceChip(val kind: Kind, val text: String, val description: String)
 sealed interface GlanceCard {
     enum class Feature { ScreenTime, Weather, Media }
 
-    data class Enable(val feature: Feature) : GlanceCard
+    val feature: Feature
+
+    data class Enable(override val feature: Feature) : GlanceCard
 
     /** Today's total, the top 3 apps, and the full list shown when expanded. */
-    data class ScreenTime(val total: String, val top: List<AppTime>, val all: List<AppTime>) : GlanceCard
+    data class ScreenTime(val total: String, val top: List<AppTime>, val all: List<AppTime>) : GlanceCard {
+        override val feature get() = Feature.ScreenTime
+    }
 
     /** Current weather for the chosen city; [age] is set once it is stale ("Updated 3h ago"). */
-    data class Weather(val city: String, val temperature: String, val condition: String, val age: String?) : GlanceCard
+    data class Weather(val city: String, val temperature: String, val condition: String, val age: String?) : GlanceCard {
+        override val feature get() = Feature.Weather
+    }
 
     /** What's playing, with artwork when the app gives one. */
-    data class Media(val packageName: String, val title: String, val artist: String?, val artwork: Bitmap?, val playing: Boolean) : GlanceCard
+    data class Media(val packageName: String, val title: String, val artist: String?, val artwork: Bitmap?, val playing: Boolean) : GlanceCard {
+        override val feature get() = Feature.Media
+    }
 }
 
 data class AppTime(val packageName: String, val time: String)
@@ -47,7 +55,7 @@ class HomeLayout(private val format: GlanceFormat) {
     }
 
     /**
-     * Glance cards in order: screen time, weather, media. Screen time waits for its first reading; without usage access it is an enable chip.
+     * Glance cards in the user's order (default: screen time, weather, media), minus hidden ones. Screen time waits for its first reading; without usage access it is an enable chip.
      * Weather shows only when [settings] is given: a "set your city" chip until a city is picked, then the cached weather.
      */
     fun cards(
@@ -70,6 +78,10 @@ class HomeLayout(private val format: GlanceFormat) {
             !mediaAccess -> add(GlanceCard.Enable(GlanceCard.Feature.Media))
             nowPlaying != null -> with(nowPlaying) { add(GlanceCard.Media(packageName, title, artist, artwork, playing)) }
         }
+    }.let { cards ->
+        // The user's order and visibility apply last, on top of the permission and media-active rules above.
+        val order = settings?.cardOrder ?: GlanceCard.Feature.entries
+        cards.filter { settings == null || it.feature !in settings.hiddenCards }.sortedBy { order.indexOf(it.feature) }
     }
 
     private fun weatherCard(settings: Settings): GlanceCard? {

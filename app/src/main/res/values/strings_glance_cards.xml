@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="glance_cards_title">Glance cards</string>
+    <string name="glance_card_screen_time">Screen time</string>
+    <string name="glance_card_weather">Weather</string>
+    <string name="glance_card_media">Media</string>
+    <string name="glance_card_move_up">Move %1$s up</string>
+    <string name="glance_card_move_down">Move %1$s down</string>
+</resources>

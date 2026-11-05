@@ -77,6 +77,8 @@ class FakeSettingsStore(initial: Settings = Settings()) : SettingsStore {
     }
     override suspend fun setGrayscaleIcons(enabled: Boolean) = state.update { it.copy(grayscaleIcons = enabled) }
     override suspend fun setHidden(packages: Set<String>) = state.update { it.copy(hidden = packages) }
+    override suspend fun setGlanceCards(order: List<com.ukhirani.leanos.home.GlanceCard.Feature>, hidden: Set<com.ukhirani.leanos.home.GlanceCard.Feature>) =
+        state.update { it.copy(cardOrder = order, hiddenCards = hidden) }
     override suspend fun setLimitExtension(packageName: String, at: java.time.Instant) =
         state.update { it.copy(limitExtensions = it.limitExtensions + (packageName to at)) }
 }

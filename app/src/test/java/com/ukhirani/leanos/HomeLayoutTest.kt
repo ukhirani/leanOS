@@ -2,6 +2,7 @@ package com.ukhirani.leanos
 
 import com.ukhirani.leanos.home.AppTime
 import com.ukhirani.leanos.home.GlanceCard
+import com.ukhirani.leanos.home.GlanceCard.Feature
 import com.ukhirani.leanos.home.GlanceChip
 import com.ukhirani.leanos.home.GlanceFormat
 import com.ukhirani.leanos.home.HomeLayout
@@ -130,5 +131,44 @@ class HomeLayoutTest {
             nowPlaying = NowPlaying("pkg.music", title = "Song", artist = "Band", playing = true),
         )
         assertEquals(listOf(GlanceCard.Enable::class, GlanceCard.Media::class), cards.map { it::class })
+    }
+
+    private val allOn = NowPlaying("pkg.music", title = "Song", artist = "Band", playing = true)
+
+    private fun customized(settings: Settings, usageAccess: Boolean = true) = layout.cards(
+        usageAccess = usageAccess, screenTime = usage("chat" to 5L), mediaAccess = true, nowPlaying = allOn, settings = settings,
+    ).map { it.feature }
+
+    private val city = com.ukhirani.leanos.platform.City("Paris", 48.85, 2.35)
+
+    @Test
+    fun `cards follow the chosen order`() {
+        val settings = Settings(weatherCity = city, cardOrder = listOf(Feature.Media, Feature.ScreenTime, Feature.Weather))
+        // Weather has a city but no reading yet, so it waits.
+        assertEquals(listOf(Feature.Media, Feature.ScreenTime), customized(settings))
+    }
+
+    @Test
+    fun `hidden cards are left out`() {
+        val settings = Settings(weatherCity = city, hiddenCards = setOf(Feature.ScreenTime, Feature.Weather))
+        assertEquals(listOf(Feature.Media), customized(settings))
+    }
+
+    @Test
+    fun `a hidden card stays hidden even when its permission is missing`() {
+        assertEquals(listOf(Feature.Media), customized(Settings(hiddenCards = setOf(Feature.ScreenTime, Feature.Weather)), usageAccess = false))
+    }
+
+    @Test
+    fun `a card without its permission keeps its place in the order as an enable chip`() {
+        val settings = Settings(cardOrder = listOf(Feature.Media, Feature.Weather, Feature.ScreenTime))
+        assertEquals(listOf(Feature.Media, Feature.Weather, Feature.ScreenTime), customized(settings, usageAccess = false))
+    }
+
+    @Test
+    fun `media stays absent while nothing plays, wherever it is placed`() {
+        val settings = Settings(cardOrder = listOf(Feature.Media, Feature.ScreenTime, Feature.Weather))
+        val cards = layout.cards(true, usage("chat" to 5L), mediaAccess = true, nowPlaying = null, settings = settings)
+        assertEquals(listOf(Feature.ScreenTime, Feature.Weather), cards.map { it.feature })
     }
 }

@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.ukhirani.leanos.home.GlanceCard
 import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -35,7 +36,19 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
             grayscaleIcons = prefs[GRAYSCALE_ICONS] ?: defaults.grayscaleIcons,
             hidden = prefs[HIDDEN].orEmpty(),
             limitExtensions = prefs.limitExtensions(),
+            cardOrder = prefs[CARD_ORDER]?.let { saved -> cardsIn(saved) }?.let { it + (defaults.cardOrder - it.toSet()) } ?: defaults.cardOrder,
+            hiddenCards = cardsIn(prefs[HIDDEN_CARDS].orEmpty()).toSet(),
         )
+    }
+
+    // Card names, comma-separated; a name this version doesn't know is skipped.
+    private fun cardsIn(saved: String) = saved.split(',').mapNotNull { n -> GlanceCard.Feature.entries.firstOrNull { it.name == n } }
+
+    override suspend fun setGlanceCards(order: List<GlanceCard.Feature>, hidden: Set<GlanceCard.Feature>) {
+        store.edit {
+            it[CARD_ORDER] = order.joinToString(",") { f -> f.name }
+            it[HIDDEN_CARDS] = hidden.joinToString(",") { f -> f.name }
+        }
     }
 
     // One "package=minutes" line per limit.
@@ -140,6 +153,8 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
         val DAILY_LIMITS = stringPreferencesKey("daily_limits")
         val GRAYSCALE_ICONS = booleanPreferencesKey("grayscale_icons")
         val HIDDEN = stringSetPreferencesKey("hidden")
+        val CARD_ORDER = stringPreferencesKey("card_order")
+        val HIDDEN_CARDS = stringPreferencesKey("hidden_cards")
         val LIMIT_EXTENSIONS = stringPreferencesKey("limit_extensions")
     }
 }

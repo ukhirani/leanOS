@@ -62,7 +62,7 @@ import kotlin.concurrent.thread
 import androidx.lifecycle.lifecycleScope
 
 /** Destinations layered over home; null means home itself. */
-private enum class SettingsPage { Settings, Hidden, About, Limits, WeatherCity }
+private enum class SettingsPage { Settings, Hidden, About, Limits, WeatherCity, GlanceCards }
 
 class HomeActivity : ComponentActivity() {
     // Wiring lives here: real platform sources in, logic and UI out.
@@ -147,6 +147,7 @@ class HomeActivity : ComponentActivity() {
                             onOpenAbout = { settingsPage = SettingsPage.About },
                             onOpenWeatherCity = { settingsPage = SettingsPage.WeatherCity },
                             onOpenLimits = { settingsPage = SettingsPage.Limits },
+                            onOpenGlanceCards = { settingsPage = SettingsPage.GlanceCards },
                         )
                     }
                     SettingsPage.WeatherCity -> {
@@ -159,6 +160,10 @@ class HomeActivity : ComponentActivity() {
                             },
                             onBack = { settingsPage = SettingsPage.Settings },
                         )
+                    }
+                    SettingsPage.GlanceCards -> {
+                        BackHandler { settingsPage = SettingsPage.Settings }
+                        com.ukhirani.leanos.settings.GlanceCardsScreen(settingsStore, onBack = { settingsPage = SettingsPage.Settings })
                     }
                     SettingsPage.Limits -> {
                         BackHandler { settingsPage = SettingsPage.Settings }

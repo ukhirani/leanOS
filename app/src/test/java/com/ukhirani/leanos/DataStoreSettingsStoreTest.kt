@@ -3,6 +3,7 @@ package com.ukhirani.leanos
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.edit
+import com.ukhirani.leanos.home.GlanceCard.Feature
 import com.ukhirani.leanos.platform.Accent
 import com.ukhirani.leanos.platform.BackgroundMode
 import com.ukhirani.leanos.platform.ClockStyle
@@ -145,5 +146,17 @@ class DataStoreSettingsStoreTest {
             mapOf("video" to java.time.Instant.ofEpochMilli(3_000), "chat" to java.time.Instant.ofEpochMilli(2_000)),
             DataStoreSettingsStore(dataStore(file)).settings.first().limitExtensions,
         )
+    }
+
+    @Test
+    fun `glance card order and visibility survive a restart`() = runBlocking {
+        val file = File(tmp.root, "cards.preferences_pb")
+        val first = DataStoreSettingsStore(dataStore(file))
+        first.setGlanceCards(listOf(Feature.Media, Feature.Weather, Feature.ScreenTime), hidden = setOf(Feature.Weather))
+        scopes.forEach { it.coroutineContext[Job]!!.cancelAndJoin() }
+
+        val settings = DataStoreSettingsStore(dataStore(file)).settings.first()
+        assertEquals(listOf(Feature.Media, Feature.Weather, Feature.ScreenTime), settings.cardOrder)
+        assertEquals(setOf(Feature.Weather), settings.hiddenCards)
     }
 }

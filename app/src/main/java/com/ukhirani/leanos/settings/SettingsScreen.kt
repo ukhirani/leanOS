@@ -49,6 +49,7 @@ fun SettingsScreen(
     onOpenAbout: () -> Unit,
     onOpenWeatherCity: () -> Unit = {},
     onOpenLimits: () -> Unit = {},
+    onOpenGlanceCards: () -> Unit = {},
 ) {
     val settings by settingsStore.settings.collectAsState(initial = Settings())
     val scope = rememberCoroutineScope()
@@ -119,6 +120,10 @@ fun SettingsScreen(
                 trailingContent = {
                     Switch(checked = settings.grayscaleIcons, onCheckedChange = { save { setGrayscaleIcons(it) } })
                 },
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.glance_cards_title)) },
+                modifier = Modifier.clickable(onClick = onOpenGlanceCards),
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.hidden_apps_title)) },
