@@ -38,7 +38,7 @@ import com.ukhirani.leanos.ui.springPress
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** One entry in an app's long-press menu. Later features (hide, limits…) add more of these. */
+/** One entry in an app's long-press menu (favorite, hide, daily limit, app info, uninstall). */
 data class AppAction(val label: String, val run: () -> Unit)
 
 /**

@@ -34,6 +34,7 @@ class LimitPolicy(private val screenTime: ScreenTime, private val clock: ClockSo
     /** [limits] maps package name to minutes per day; [extensions] to when its last extension was granted. */
     fun decide(packageName: String, limits: Map<String, Int>, extensions: Map<String, Instant> = emptyMap()): LimitDecision {
         val limit = limits[packageName]?.let { Duration.ofMinutes(it.toLong()) } ?: return LimitDecision.Unlimited
+        // shortcut: rescans all of today's usage events on every check; cache or read incrementally if limit checks get slow.
         val today = screenTime.today() ?: return LimitDecision.Unlimited
         val used = today.apps.firstOrNull { it.packageName == packageName }?.duration ?: Duration.ZERO
         if (used < limit) return LimitDecision.Allowed(limit - used)

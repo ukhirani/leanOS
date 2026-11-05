@@ -34,15 +34,17 @@ fun SetupScreen(
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.safeDrawingPadding().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(stringResource(R.string.setup_title), style = MaterialTheme.typography.headlineMedium)
-            if (step == SetupStep.WeatherCity) {
+            val permission = when (step) {
+                SetupStep.WeatherCity -> null
+                SetupStep.DefaultLauncher -> R.string.setup_launcher_why to R.string.setup_launcher_action
+                SetupStep.UsageAccess -> R.string.setup_usage_why to R.string.setup_usage_action
+                SetupStep.NotificationAccess -> R.string.setup_notification_why to R.string.setup_notification_action
+                SetupStep.Accessibility -> R.string.setup_accessibility_why to R.string.setup_accessibility_action
+            }
+            if (permission == null) {
                 CitySearch(weatherSource, onPick = onPickCity)
             } else {
-                val (why, action) = when (step) {
-                    SetupStep.DefaultLauncher -> R.string.setup_launcher_why to R.string.setup_launcher_action
-                    SetupStep.UsageAccess -> R.string.setup_usage_why to R.string.setup_usage_action
-                    SetupStep.NotificationAccess -> R.string.setup_notification_why to R.string.setup_notification_action
-                    else -> R.string.setup_accessibility_why to R.string.setup_accessibility_action
-                }
+                val (why, action) = permission
                 Text(stringResource(why), style = MaterialTheme.typography.bodyLarge)
                 Button(onClick = onAction) { Text(stringResource(action)) }
             }

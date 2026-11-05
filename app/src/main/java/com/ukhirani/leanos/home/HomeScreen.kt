@@ -120,7 +120,7 @@ fun HomeScreen(
 @Composable
 private fun Clock(time: String, style: ClockStyle, modifier: Modifier = Modifier) {
     BoxWithConstraints(modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-        // Sized from the screen width in dp, not sp, so large system text can't make it clip.
+        // shortcut: sized from the screen width in dp, so it ignores the system font scale (never clips at 1.3x); scale it by a clamped fontScale if users want that.
         val size = with(LocalDensity.current) { (maxWidth / 3.4f).toSp() }
         Text(
             text = time,

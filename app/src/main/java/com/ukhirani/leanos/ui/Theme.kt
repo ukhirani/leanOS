@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.Font
@@ -39,18 +40,25 @@ fun LeanTheme(settings: Settings = Settings(), content: @Composable () -> Unit) 
 }
 
 private fun ColorScheme.withAccent(accent: Color, dark: Boolean): ColorScheme {
-    val primary = if (dark) lerp(accent, Color.White, 0.35f) else accent
+    val primary = if (dark) lerp(accent, onSurface, 0.35f) else accent
     val container = lerp(accent, surface, if (dark) 0.6f else 0.75f)
     val onContainer = lerp(accent, onSurface, 0.55f)
     return copy(
         primary = primary,
-        onPrimary = if (dark) Color.Black else Color.White,
+        onPrimary = readableOn(primary),
         primaryContainer = container,
         onPrimaryContainer = onContainer,
         tertiary = primary,
+        onTertiary = readableOn(primary),
         tertiaryContainer = lerp(container, surface, 0.35f),
         onTertiaryContainer = onContainer,
     )
+}
+
+/** Whichever of this scheme's surface and onSurface contrasts more with [background]: the text color to put on it. */
+private fun ColorScheme.readableOn(background: Color): Color {
+    fun contrast(a: Color, b: Color) = (maxOf(a.luminance(), b.luminance()) + 0.05f) / (minOf(a.luminance(), b.luminance()) + 0.05f)
+    return if (contrast(background, surface) >= contrast(background, onSurface)) surface else onSurface
 }
 
 /** Google Sans Flex set to a clock preset's axes. The font never changes, only its axes. */
@@ -66,9 +74,6 @@ fun clockFontFamily(style: ClockStyle): FontFamily = FontFamily(
         ),
     ),
 )
-
-/** Google Sans Flex at its heaviest, widest, fully rounded setting: the default clock face. */
-val ClockFontFamily = clockFontFamily(ClockStyle.CHUNKY)
 
 @Composable
 fun rememberClockFontFamily(style: ClockStyle): FontFamily = remember(style) { clockFontFamily(style) }

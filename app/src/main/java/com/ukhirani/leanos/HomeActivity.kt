@@ -38,7 +38,10 @@ import com.ukhirani.leanos.drawer.FavoritesRow
 import com.ukhirani.leanos.drawer.LocalGrayscaleIcons
 import com.ukhirani.leanos.platform.InstalledApp
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -50,6 +53,7 @@ import com.ukhirani.leanos.home.HomeClock
 import com.ukhirani.leanos.home.HomeGestures
 import com.ukhirani.leanos.home.HomeLayout
 import com.ukhirani.leanos.home.HomeScreen
+import com.ukhirani.leanos.home.appLabel
 import com.ukhirani.leanos.platform.AndroidAlarmSource
 import com.ukhirani.leanos.platform.AndroidBatterySource
 import com.ukhirani.leanos.platform.AndroidMediaSource
@@ -57,18 +61,21 @@ import com.ukhirani.leanos.platform.AndroidUsageSource
 import com.ukhirani.leanos.platform.FocusAccessibilityService
 import com.ukhirani.leanos.platform.DataStoreSettingsStore
 import com.ukhirani.leanos.platform.LauncherAppsSource
+import com.ukhirani.leanos.platform.OpenMeteoWeatherSource
 import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.platform.SystemClockSource
 import com.ukhirani.leanos.settings.AboutScreen
+import com.ukhirani.leanos.settings.GlanceCardsScreen
 import com.ukhirani.leanos.settings.HiddenAppsScreen
 import com.ukhirani.leanos.settings.LimitDialog
 import com.ukhirani.leanos.settings.LimitsAccess
 import com.ukhirani.leanos.settings.LimitsScreen
 import com.ukhirani.leanos.settings.SettingsScreen
+import com.ukhirani.leanos.settings.WeatherCityScreen
 import com.ukhirani.leanos.ui.LeanTheme
 import com.ukhirani.leanos.usage.ScreenTime
 import com.ukhirani.leanos.usage.ScreenTimeToday
-import kotlin.concurrent.thread
+import com.ukhirani.leanos.weather.WeatherRefresh
 import androidx.lifecycle.lifecycleScope
 
 /** Destinations layered over home; null means home itself. */
@@ -85,23 +92,24 @@ class HomeActivity : ComponentActivity() {
     private val openDrawer = { drawerOpen = true }
     private var settingsPage by mutableStateOf<SettingsPage?>(null)
     private val openSettings = { settingsPage = SettingsPage.Settings }
-    private val homeLayout = HomeLayout(GlanceFormat(SystemClockSource))
+    private val glanceFormat = GlanceFormat(SystemClockSource)
+    private val homeLayout = HomeLayout(glanceFormat)
     private val alarmSource by lazy { AndroidAlarmSource(this) }
     private val batterySource by lazy { AndroidBatterySource(this) }
     private val usageSource by lazy { AndroidUsageSource(this) }
     private val screenTime by lazy { ScreenTime(usageSource, SystemClockSource, packageName) }
     private var usageAccess by mutableStateOf(false)
     private var screenTimeToday by mutableStateOf<ScreenTimeToday?>(null)
-    private val weatherSource = com.ukhirani.leanos.platform.OpenMeteoWeatherSource()
-    private val weatherRefresh by lazy { com.ukhirani.leanos.weather.WeatherRefresh(weatherSource, settingsStore, SystemClockSource) }
+    private val weatherSource = OpenMeteoWeatherSource()
+    private val weatherRefresh by lazy { WeatherRefresh(weatherSource, settingsStore, SystemClockSource) }
 
     /** Off the main thread; any failure (network, storage) leaves home showing what it had. */
     private fun refreshWeather(before: suspend () -> Unit = {}) {
-        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 before()
                 weatherRefresh.refreshIfStale()
-            } catch (e: kotlinx.coroutines.CancellationException) {
+            } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
             }
@@ -194,7 +202,7 @@ class HomeActivity : ComponentActivity() {
                     }
                     SettingsPage.WeatherCity -> {
                         BackHandler { settingsPage = SettingsPage.Settings }
-                        com.ukhirani.leanos.settings.WeatherCityScreen(
+                        WeatherCityScreen(
                             settingsStore, weatherSource,
                             onPick = { city ->
                                 refreshWeather { settingsStore.setWeatherCity(city) }
@@ -205,17 +213,16 @@ class HomeActivity : ComponentActivity() {
                     }
                     SettingsPage.GlanceCards -> {
                         BackHandler { settingsPage = SettingsPage.Settings }
-                        com.ukhirani.leanos.settings.GlanceCardsScreen(settingsStore, onBack = { settingsPage = SettingsPage.Settings })
+                        GlanceCardsScreen(settingsStore, onBack = { settingsPage = SettingsPage.Settings })
                     }
                     SettingsPage.Limits -> {
                         BackHandler { settingsPage = SettingsPage.Settings }
-                        val installed by installedApps.apps.collectAsState(initial = emptyList())
                         LimitsScreen(
                             settingsStore,
-                            labelOf = { pkg -> installed.firstOrNull { it.packageName == pkg }?.label ?: pkg },
+                            labelOf = ::appLabel,
                             usage = screenTimeToday,
                             access = limitsWork,
-                            durationText = GlanceFormat(SystemClockSource)::durationText,
+                            durationText = glanceFormat::durationText,
                             onBack = { settingsPage = SettingsPage.Settings },
                         )
                     }
@@ -289,7 +296,7 @@ class HomeActivity : ComponentActivity() {
         usageAccess = usageSource.hasAccess()
         mediaAccess = mediaSource.hasAccess()
         readSetupAccess()
-        thread { screenTime.today().let { runOnUiThread { screenTimeToday = it } } }
+        lifecycleScope.launch { screenTimeToday = withContext(Dispatchers.IO) { screenTime.today() } }
         refreshWeather()
     }
 
