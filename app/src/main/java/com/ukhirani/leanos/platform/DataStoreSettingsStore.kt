@@ -35,6 +35,7 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
             grayscaleIcons = prefs[GRAYSCALE_ICONS] ?: defaults.grayscaleIcons,
             hidden = prefs[HIDDEN].orEmpty(),
             limitExtensions = prefs.limitExtensions(),
+            onboardingCompleted = prefs[ONBOARDING_COMPLETED] ?: defaults.onboardingCompleted,
         )
     }
 
@@ -65,6 +66,10 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
             val extensions = prefs.limitExtensions() + (packageName to at)
             prefs[LIMIT_EXTENSIONS] = extensions.entries.joinToString("\n") { "${it.key}=${it.value.toEpochMilli()}" }
         }
+    }
+
+    override suspend fun setOnboardingCompleted(completed: Boolean) {
+        store.edit { it[ONBOARDING_COMPLETED] = completed }
     }
 
     override suspend fun setUse24Hour(enabled: Boolean) {
@@ -141,5 +146,6 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
         val GRAYSCALE_ICONS = booleanPreferencesKey("grayscale_icons")
         val HIDDEN = stringSetPreferencesKey("hidden")
         val LIMIT_EXTENSIONS = stringPreferencesKey("limit_extensions")
+        val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
     }
 }

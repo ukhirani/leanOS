@@ -26,6 +26,8 @@ data class Settings(
     val hidden: Set<String> = emptySet(),
     /** Daily-limit extensions: package name to when its last "5 more minutes" was granted. */
     val limitExtensions: Map<String, Instant> = emptyMap(),
+    /** The first-run walkthrough has been finished or skipped through; false shows it. */
+    val onboardingCompleted: Boolean = false,
 )
 
 /** Clock style presets: each one is a set of Google Sans Flex axes, never a different font. */
@@ -71,4 +73,7 @@ interface SettingsStore {
 
     /** Records that [packageName] was given its daily-limit extension at [at]. */
     suspend fun setLimitExtension(packageName: String, at: Instant)
+
+    /** Remembers that first-run setup is done; false re-runs it. */
+    suspend fun setOnboardingCompleted(completed: Boolean)
 }

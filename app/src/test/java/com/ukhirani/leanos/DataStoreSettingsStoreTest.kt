@@ -82,6 +82,20 @@ class DataStoreSettingsStoreTest {
     }
 
     @Test
+    fun `onboarding completion survives a restart and can be reset`() = runBlocking {
+        val file = File(tmp.root, "o.preferences_pb")
+        val first = DataStoreSettingsStore(dataStore(file))
+        assertEquals(false, first.settings.first().onboardingCompleted)
+        first.setOnboardingCompleted(true)
+        scopes.forEach { it.coroutineContext[Job]!!.cancelAndJoin() }
+
+        val reopened = DataStoreSettingsStore(dataStore(file))
+        assertEquals(true, reopened.settings.first().onboardingCompleted)
+        reopened.setOnboardingCompleted(false)
+        assertEquals(false, reopened.settings.first().onboardingCompleted)
+    }
+
+    @Test
     fun `weather city, units and the cached weather survive a restart`() = runBlocking {
         val file = File(tmp.root, "w.preferences_pb")
         val city = com.ukhirani.leanos.platform.City("Paris, Île-de-France, France", 48.85341, 2.3488)
