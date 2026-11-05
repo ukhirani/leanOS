@@ -23,8 +23,10 @@ fun AboutScreen(onBack: () -> Unit) {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
     }
     // Referenced from code, so release resource shrinking keeps the license file.
-    val license = remember {
-        context.resources.openRawResource(R.raw.google_sans_flex_ofl).bufferedReader().use { it.readText() }
+    val licenses = remember {
+        listOf(R.raw.google_sans_ofl, R.raw.google_sans_flex_ofl).map { id ->
+            context.resources.openRawResource(id).bufferedReader().use { it.readText() }
+        }
     }
     LeanScaffold(stringResource(R.string.about_title), onBack) { modifier ->
         Column(modifier.verticalScroll(rememberScrollState())) {
@@ -32,12 +34,14 @@ fun AboutScreen(onBack: () -> Unit) {
                 headlineContent = { Text(stringResource(R.string.app_name)) },
                 supportingContent = { Text(stringResource(R.string.about_version, version)) },
             )
-            ListItem(headlineContent = { Text(stringResource(R.string.about_font_license)) })
-            Text(
-                license,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+            listOf(R.string.about_font_license_sans, R.string.about_font_license).zip(licenses).forEach { (title, license) ->
+                ListItem(headlineContent = { Text(stringResource(title)) })
+                Text(
+                    license,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
         }
     }
 }

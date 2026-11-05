@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 import com.ukhirani.leanos.R
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
@@ -49,7 +49,7 @@ fun AppDrawer(
     apps: List<InstalledApp>,
     catalog: AppCatalog,
     icon: (InstalledApp) -> ImageBitmap?,
-    iconSize: Dp = 48.dp,
+    iconSize: Dp = 24.dp,
     onMenu: (InstalledApp) -> Unit,
     onLaunch: (InstalledApp) -> Unit,
 ) {
@@ -69,19 +69,21 @@ fun AppDrawer(
             .safeDrawingPadding()
             .imePadding(),
     ) {
+        // No container: just a quiet underline.
         TextField(
             value = query,
             onValueChange = { query = it },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
                 .focusRequester(focus),
             placeholder = { Text(stringResource(R.string.search_apps)) },
             singleLine = true,
-            shape = RoundedCornerShape(28.dp),
             colors = TextFieldDefaults.colors(
-                focusedIndicatorColor = MaterialTheme.colorScheme.surface.copy(alpha = 0f),
-                unfocusedIndicatorColor = MaterialTheme.colorScheme.surface.copy(alpha = 0f),
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
+                unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
             ),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
             keyboardActions = KeyboardActions(onGo = { results.firstOrNull()?.let(onLaunch) }),
@@ -105,10 +107,10 @@ private fun AppRow(
     Row(
         Modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp)
+            .heightIn(min = 48.dp)
             // TalkBack reads the label; the click labels say what activating it does.
             .appPress(onClick = { onLaunch(app) }, onLongPress = { onMenu(app) })
-            .padding(horizontal = 24.dp, vertical = 4.dp),
+            .padding(horizontal = 28.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {

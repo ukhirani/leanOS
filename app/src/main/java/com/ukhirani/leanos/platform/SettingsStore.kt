@@ -54,7 +54,7 @@ enum class Accent(val argb: Long) {
 
 enum class BackgroundMode { WALLPAPER, SOLID }
 
-enum class IconSize(val dp: Int) { SMALL(40), MEDIUM(48), LARGE(56) }
+enum class IconSize(val dp: Int) { SMALL(20), MEDIUM(24), LARGE(28) }
 
 /** LeanOS settings. Reads emit the current value, then every change. */
 interface SettingsStore {

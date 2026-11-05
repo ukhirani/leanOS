@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -27,7 +26,6 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -64,34 +62,32 @@ fun AppIcon(app: InstalledApp, icon: (InstalledApp) -> ImageBitmap?, size: Dp) {
     }
 }
 
-/** The favorites row: icon over name, in the thumb zone. */
+/** The favorites: one app per row (small icon, name), a left-aligned list in the thumb zone. */
 @Composable
 fun FavoritesRow(
     apps: List<InstalledApp>,
     icon: (InstalledApp) -> ImageBitmap?,
     onLaunch: (InstalledApp) -> Unit,
     onMenu: (InstalledApp) -> Unit,
-    iconSize: Dp = 48.dp,
+    iconSize: Dp = 24.dp,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 16.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+    Column(modifier) {
         apps.forEach { app ->
-            Column(
+            Row(
                 Modifier
-                    .width(64.dp)
-                    .appPress(onClick = { onLaunch(app) }, onLongPress = { onMenu(app) })
-                    .padding(vertical = 4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                    .heightIn(min = 48.dp)
+                    .appPress(onClick = { onLaunch(app) }, onLongPress = { onMenu(app) }),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 AppIcon(app, icon, iconSize)
                 Text(
                     app.label,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 4.dp),
                 )
             }
         }

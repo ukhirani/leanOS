@@ -6,6 +6,7 @@
     <string name="glance_card_media">Media</string>
     <string name="glance_card_move_up">Move %1$s up</string>
     <string name="glance_card_move_down">Move %1$s down</string>
+    <string name="glance_screen_time_today">%1$s today</string>
     <string name="enable_screen_time">Screen time · tap to enable</string>
     <string name="enable_weather">Weather · set your city</string>
     <string name="enable_media">Media · tap to enable</string>

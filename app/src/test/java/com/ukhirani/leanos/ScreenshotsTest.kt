@@ -1,17 +1,21 @@
 package com.ukhirani.leanos
 
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.unit.Density
 import com.ukhirani.leanos.drawer.AppCatalog
 import com.ukhirani.leanos.drawer.AppDrawer
+import com.ukhirani.leanos.drawer.FavoritesRow
 import com.ukhirani.leanos.home.GlanceFormat
 import com.ukhirani.leanos.home.HomeClock
 import com.ukhirani.leanos.home.HomeGestures
@@ -35,6 +39,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.ParameterizedRobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -55,10 +60,10 @@ class ScreenshotsTest(private val variant: String, private val dark: Boolean, pr
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     private val clock = FakeClockSource("2026-11-04T09:41:00+01:00[Europe/Paris]")
-    private val apps = listOf("Calendar", "Camera", "Chat", "Clock", "Maps", "Music", "Notes", "Phone", "Photos", "Settings").map { app(it) }
+    private val apps = listOf("Phone", "Messages", "Camera", "Calendar", "Chat", "Clock", "Maps", "Music", "Notes", "Photos", "Settings").map { app(it) }
     private val store = FakeSettingsStore(
         Settings(
-            favorites = apps.take(4).map { it.packageName },
+            favorites = apps.take(3).map { it.packageName },
             weatherCity = City("Paris, France", 48.85, 2.35),
             weather = CurrentWeather(11.4, 3, clock.now().toInstant()),
         ),
@@ -97,16 +102,29 @@ class ScreenshotsTest(private val variant: String, private val dark: Boolean, pr
             listOf(AppUsage("pkg.chat", Duration.ofMinutes(50)), AppUsage("pkg.maps", Duration.ofMinutes(30)), AppUsage("pkg.mail", Duration.ofMinutes(15))),
         )
         val format = GlanceFormat(clock, Locale.US)
+        // The screen time rows look app labels up in the package manager.
+        val pm = shadowOf(RuntimeEnvironment.getApplication().packageManager)
+        for ((pkg, name) in listOf("pkg.chat" to "Chat", "pkg.maps" to "Maps", "pkg.mail" to "Mail")) {
+            pm.installPackage(PackageInfo().apply {
+                packageName = pkg
+                applicationInfo = ApplicationInfo().apply { packageName = pkg; nonLocalizedLabel = name }
+            })
+        }
         HomeScreen(
             HomeClock(clock), store, HomeGestures(FakeFocusService()), HomeLayout(format), alarm,
             FakeBatterySource(BatteryState(82, true)),
             usageAccess = true, screenTime = usage, mediaSource = media, mediaAccess = true,
-        )
+        ) {
+            FavoritesRow(apps.take(3), { icon }, onLaunch = {}, onMenu = {})
+        }
     }
+
+    // A flat stand-in for an app icon, so the screenshots show where icons go.
+    private val icon = Bitmap.createBitmap(48, 48, Bitmap.Config.ARGB_8888).apply { eraseColor(0xFF9E9E9E.toInt()) }.asImageBitmap()
 
     @Test
     fun drawer() = shot("drawer") {
-        AppDrawer(apps, AppCatalog(FakeInstalledAppsSource(*apps.toTypedArray()), store), { null }, onMenu = {}, onLaunch = {})
+        AppDrawer(apps, AppCatalog(FakeInstalledAppsSource(*apps.toTypedArray()), store), { icon }, onMenu = {}, onLaunch = {})
     }
 
     @Test

@@ -11,9 +11,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.material3.Button
+
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -24,7 +25,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.sp
+import com.ukhirani.leanos.platform.ClockStyle
+import com.ukhirani.leanos.ui.rememberClockFontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.ukhirani.leanos.home.GlanceFormat
@@ -54,7 +58,7 @@ class BlockActivity : ComponentActivity() {
             val settings by settingsStore.settings.collectAsState(initial = Settings())
             LeanTheme(settings) {
                 BackHandler { goHome() }
-                BlockScreen(label, used, canExtend, onGoHome = ::goHome, onExtend = { extend(settingsStore, pkg) })
+                BlockScreen(label, used, canExtend, onGoHome = ::goHome, onExtend = { extend(settingsStore, pkg) }, clockStyle = settings.clockStyle)
             }
         }
     }
@@ -88,30 +92,43 @@ class BlockActivity : ComponentActivity() {
 
 /** What the Block screen shows for [label]; "5 more minutes" appears only when [canExtend]. */
 @Composable
-fun BlockScreen(label: String, used: String, canExtend: Boolean, onGoHome: () -> Unit, onExtend: () -> Unit) {
+fun BlockScreen(
+    label: String,
+    used: String,
+    canExtend: Boolean,
+    onGoHome: () -> Unit,
+    onExtend: () -> Unit,
+    clockStyle: ClockStyle = ClockStyle.CHUNKY,
+) {
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
         Column(
-            Modifier.safeDrawingPadding().padding(32.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            Modifier.safeDrawingPadding().padding(horizontal = 28.dp, vertical = 32.dp),
+            verticalArrangement = Arrangement.Center,
         ) {
-            Text(label, style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
+            Text(label, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // The one big number, in Google Sans Flex like the clock.
             Text(
-                stringResource(R.string.block_used_today, used),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
+                used,
+                style = TextStyle(
+                    fontFamily = rememberClockFontFamily(clockStyle),
+                    fontSize = 44.sp,
+                    lineHeight = 52.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                ),
+                maxLines = 1,
+                softWrap = false,
             )
+            Text(stringResource(R.string.block_used_today), style = MaterialTheme.typography.bodyLarge)
             Text(
                 stringResource(R.string.block_unlocks),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
             )
-            Button(onClick = onGoHome, modifier = Modifier.padding(top = 16.dp).heightIn(min = 48.dp)) {
-                Text(stringResource(R.string.block_go_home))
+            TextButton(onClick = onGoHome, modifier = Modifier.padding(top = 24.dp).offset(x = (-12).dp).heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.block_go_home), style = MaterialTheme.typography.titleMedium)
             }
             if (canExtend) {
-                TextButton(onClick = onExtend, modifier = Modifier.heightIn(min = 48.dp)) {
+                TextButton(onClick = onExtend, modifier = Modifier.offset(x = (-12).dp).heightIn(min = 48.dp)) {
                     Text(stringResource(R.string.block_extend))
                 }
             }

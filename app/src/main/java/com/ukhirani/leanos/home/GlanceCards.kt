@@ -1,8 +1,6 @@
 package com.ukhirani.leanos.home
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,33 +8,34 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.ukhirani.leanos.R
 import com.ukhirani.leanos.platform.MediaSource
 import com.ukhirani.leanos.ui.springPress
 
-/** The glance cards under the chips, in the order HomeLayout gives them. */
+/** The glance rows under the info line, in the order HomeLayout gives them: quiet text, no surfaces. */
 @Composable
 fun GlanceCards(
     cards: List<GlanceCard>,
@@ -45,134 +44,100 @@ fun GlanceCards(
     onSetCity: () -> Unit = {},
     onRetryWeather: () -> Unit = {},
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(modifier) {
         cards.forEach { card ->
             when (card) {
-                is GlanceCard.ScreenTime -> ScreenTimeCard(card)
-                is GlanceCard.Weather -> WeatherCard(card, onSetCity)
-                is GlanceCard.Media -> MediaCard(card, media)
-                is GlanceCard.WeatherUnavailable -> TextChip(stringResource(R.string.weather_unavailable), onRetryWeather)
-                is GlanceCard.Enable -> EnableChip(card.feature, onSetCity)
+                is GlanceCard.ScreenTime -> ScreenTimeRow(card)
+                is GlanceCard.Weather -> WeatherRow(card, onSetCity)
+                is GlanceCard.Media -> MediaRow(card, media)
+                is GlanceCard.WeatherUnavailable -> QuietRow(stringResource(R.string.weather_unavailable), onRetryWeather)
+                is GlanceCard.Enable -> EnableRow(card.feature, onSetCity)
             }
         }
     }
 }
 
+/** Primary text in onSurface, then the secondary parts in onSurfaceVariant, on one ellipsized line. */
 @Composable
-private fun WeatherCard(card: GlanceCard.Weather, onClick: () -> Unit) {
-    Surface(
-        // TalkBack reads the texts inside: "Weather in Paris, 11°C, Overcast".
-        modifier = Modifier.springPress(onClick).fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-    ) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                stringResource(R.string.weather_in, card.city),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(card.temperature, style = MaterialTheme.typography.headlineMedium)
-                Text(card.condition, Modifier.padding(bottom = 4.dp), style = MaterialTheme.typography.bodyLarge)
-            }
-            card.age?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
+private fun primaryAndSecondary(primary: String, vararg secondary: String?): AnnotatedString {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    return buildAnnotatedString {
+        append(primary)
+        withStyle(SpanStyle(color = muted)) { secondary.filterNotNull().forEach { append(" · $it") } }
     }
 }
 
 @Composable
-private fun ScreenTimeCard(card: GlanceCard.ScreenTime) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
+private fun GlanceLine(text: AnnotatedString, modifier: Modifier = Modifier) =
+    Text(text, modifier, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+
+@Composable
+private fun WeatherRow(card: GlanceCard.Weather, onClick: () -> Unit) {
+    val description = stringResource(R.string.weather_in, card.city) + ", ${card.temperature}, ${card.condition}"
+    Box(
+        Modifier.fillMaxWidth().springPress(onClick).heightIn(min = 48.dp).semantics { contentDescription = description },
+        contentAlignment = Alignment.CenterStart,
+    ) { GlanceLine(primaryAndSecondary("${card.temperature} ${card.condition}", card.city, card.age)) }
+}
+
+@Composable
+private fun ScreenTimeRow(card: GlanceCard.ScreenTime) {
+    // 0 = just the line, 1 = top 3 below it, 2 = every app (only when there are more than 3).
+    var level by rememberSaveable { mutableIntStateOf(0) }
     val context = LocalContext.current
-    val rows = if (expanded) card.all else card.top
-    val labels = remember(rows) { rows.associate { it.packageName to context.appLabel(it.packageName) } }
-    Surface(
-        // TalkBack reads the texts inside: "Screen time, 1h 15m, Chat, 50m, ...".
-        modifier = Modifier.springPress({ expanded = !expanded }).fillMaxWidth().animateContentSize(),
-        shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-    ) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(stringResource(R.string.glance_card_screen_time), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(card.total, style = MaterialTheme.typography.headlineMedium)
-            rows.forEach { app ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(
-                        labels[app.packageName] ?: app.packageName,
-                        Modifier.weight(1f).padding(end = 12.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(app.time, style = MaterialTheme.typography.bodyMedium)
-                }
+    val rows = if (level == 2) card.all else if (level == 1) card.top else emptyList()
+    val labels = remember(card) { card.all.associate { it.packageName to context.appLabel(it.packageName) } }
+    val topApp = card.top.firstOrNull()?.let { "${labels[it.packageName]} ${it.time}" }
+    Column(Modifier.fillMaxWidth().animateContentSize()) {
+        Box(
+            Modifier.fillMaxWidth()
+                .springPress({ level = if (level == 0 || (level == 1 && card.all.size > card.top.size)) level + 1 else 0 })
+                .heightIn(min = 48.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) { GlanceLine(primaryAndSecondary(stringResource(R.string.glance_screen_time_today, card.total), topApp)) }
+        rows.forEach { app ->
+            Row(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+                val style = MaterialTheme.typography.bodyMedium
+                val muted = MaterialTheme.colorScheme.onSurfaceVariant
+                Text(labels[app.packageName] ?: app.packageName, Modifier.weight(1f).padding(end = 12.dp), style = style, color = muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(app.time, style = style, color = muted)
             }
         }
     }
 }
 
 @Composable
-private fun MediaCard(card: GlanceCard.Media, media: MediaSource?) {
-    Surface(
-        modifier = Modifier.springPress({ media?.open() }).fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-    ) {
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            // No artwork: the text simply takes the room.
-            card.artwork?.let {
-                Image(
-                    it.asImageBitmap(),
-                    contentDescription = null,
-                    modifier = Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)),
-                    contentScale = ContentScale.Crop,
-                )
-            }
-            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                Text(card.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                card.artist?.let {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            MediaButton(android.R.drawable.ic_media_previous, stringResource(R.string.media_previous)) { media?.previous() }
-            if (card.playing) {
-                MediaButton(android.R.drawable.ic_media_pause, stringResource(R.string.media_pause)) { media?.playPause() }
-            } else {
-                MediaButton(android.R.drawable.ic_media_play, stringResource(R.string.media_play)) { media?.playPause() }
-            }
-            MediaButton(android.R.drawable.ic_media_next, stringResource(R.string.media_next)) { media?.next() }
+private fun MediaRow(card: GlanceCard.Media, media: MediaSource?) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.weight(1f).springPress({ media?.open() }).heightIn(min = 48.dp), contentAlignment = Alignment.CenterStart) {
+            GlanceLine(primaryAndSecondary(card.title, card.artist))
         }
+        if (card.playing) {
+            MediaButton(android.R.drawable.ic_media_pause, stringResource(R.string.media_pause)) { media?.playPause() }
+        } else {
+            MediaButton(android.R.drawable.ic_media_play, stringResource(R.string.media_play)) { media?.playPause() }
+        }
+        MediaButton(android.R.drawable.ic_media_next, stringResource(R.string.media_next)) { media?.next() }
     }
 }
 
 @Composable
 private fun MediaButton(icon: Int, description: String, onClick: () -> Unit) {
     Box(Modifier.size(48.dp).springPress(onClick, role = Role.Button), contentAlignment = Alignment.Center) {
-        Icon(painterResource(icon), contentDescription = description, Modifier.size(24.dp))
+        Icon(painterResource(icon), contentDescription = description, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 /** "Tap to enable": stands in for a feature whose permission is missing and opens its settings page. */
 @Composable
-private fun EnableChip(feature: GlanceCard.Feature, onSetCity: () -> Unit) {
+private fun EnableRow(feature: GlanceCard.Feature, onSetCity: () -> Unit) {
     val context = LocalContext.current
     val text = stringResource(when (feature) {
         GlanceCard.Feature.ScreenTime -> R.string.enable_screen_time
         GlanceCard.Feature.Weather -> R.string.enable_weather
         GlanceCard.Feature.Media -> R.string.enable_media
     })
-    TextChip(text) {
+    QuietRow(text) {
         when (feature) {
             GlanceCard.Feature.ScreenTime -> context.openUsageAccessSettings()
             GlanceCard.Feature.Weather -> onSetCity()
@@ -182,12 +147,8 @@ private fun EnableChip(feature: GlanceCard.Feature, onSetCity: () -> Unit) {
 }
 
 @Composable
-private fun TextChip(text: String, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier.springPress(onClick).heightIn(min = 48.dp),
-        shape = RoundedCornerShape(50),
-        color = MaterialTheme.colorScheme.secondaryContainer,
-    ) {
-        Text(text, Modifier.padding(horizontal = 16.dp, vertical = 14.dp), style = MaterialTheme.typography.labelLarge)
+private fun QuietRow(text: String, onClick: () -> Unit) {
+    Box(Modifier.fillMaxWidth().springPress(onClick).heightIn(min = 48.dp), contentAlignment = Alignment.CenterStart) {
+        Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }

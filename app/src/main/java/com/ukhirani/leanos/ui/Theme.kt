@@ -80,21 +80,21 @@ fun clockFontFamily(style: ClockStyle): FontFamily = FontFamily(
 @Composable
 fun rememberClockFontFamily(style: ClockStyle): FontFamily = remember(style) { clockFontFamily(style) }
 
-/** The Material type scale, unchanged in size/weight/line height, but all in Google Sans Flex at its default axes. */
+/** The Material type scale, unchanged in size/weight/line height, but all in Google Sans; Flex is for the clock only. */
 private val leanTypography: Typography = Typography().let { base ->
-    fun TextStyle.flex(): TextStyle {
+    fun TextStyle.sans(): TextStyle {
         val w = fontWeight ?: FontWeight.Normal
         return copy(
             fontFamily = FontFamily(
-                Font(R.font.google_sans_flex, weight = w, variationSettings = FontVariation.Settings(FontVariation.weight(w.weight))),
+                Font(R.font.google_sans, weight = w, variationSettings = FontVariation.Settings(FontVariation.weight(w.weight))),
             ),
         )
     }
     return@let base.copy(
-        displayLarge = base.displayLarge.flex(), displayMedium = base.displayMedium.flex(), displaySmall = base.displaySmall.flex(),
-        headlineLarge = base.headlineLarge.flex(), headlineMedium = base.headlineMedium.flex(), headlineSmall = base.headlineSmall.flex(),
-        titleLarge = base.titleLarge.flex(), titleMedium = base.titleMedium.flex(), titleSmall = base.titleSmall.flex(),
-        bodyLarge = base.bodyLarge.flex(), bodyMedium = base.bodyMedium.flex(), bodySmall = base.bodySmall.flex(),
-        labelLarge = base.labelLarge.flex(), labelMedium = base.labelMedium.flex(), labelSmall = base.labelSmall.flex(),
+        displayLarge = base.displayLarge.sans(), displayMedium = base.displayMedium.sans(), displaySmall = base.displaySmall.sans(),
+        headlineLarge = base.headlineLarge.sans(), headlineMedium = base.headlineMedium.sans(), headlineSmall = base.headlineSmall.sans(),
+        titleLarge = base.titleLarge.sans(), titleMedium = base.titleMedium.sans(), titleSmall = base.titleSmall.sans(),
+        bodyLarge = base.bodyLarge.sans(), bodyMedium = base.bodyMedium.sans(), bodySmall = base.bodySmall.sans(),
+        labelLarge = base.labelLarge.sans(), labelMedium = base.labelMedium.sans(), labelSmall = base.labelSmall.sans(),
     )
 }

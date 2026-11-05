@@ -25,7 +25,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ukhirani.leanos.R
 import com.ukhirani.leanos.platform.AlarmSource
@@ -92,8 +91,8 @@ fun HomeScreen(
             .homeGestures(onSwipeDown = onSwipeDown, onDoubleTap = onDoubleTap, onSwipeUp = onSwipeUp, onLongPress = onOpenSettings)
             .safeDrawingPadding(),
     ) {
-        ClockGlow(Modifier.align(Alignment.TopCenter).padding(top = 16.dp).fillMaxWidth().height(240.dp))
-        Column(Modifier.align(Alignment.TopCenter).padding(top = 72.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        ClockGlow(Modifier.align(Alignment.TopStart).padding(top = 24.dp).fillMaxWidth(0.7f).height(200.dp))
+        Column(Modifier.align(Alignment.TopStart).padding(top = 56.dp, start = 28.dp, end = 28.dp)) {
             Clock(
                 time,
                 settings.clockStyle,
@@ -101,7 +100,7 @@ fun HomeScreen(
             )
             // Recomputed each minute with the clock, so the alarm countdown and date stay current.
             val chips = remember(time, settings, alarm, battery) { homeLayout.chips(settings, alarm, battery) }
-            GlanceChipRow(chips, alarm, Modifier.padding(top = 8.dp, start = 16.dp, end = 16.dp))
+            GlanceChipRow(chips, alarm)
             // Re-subscribed when access changes, so granting it on the settings page shows the card on return.
             val nowPlaying by remember(mediaSource, mediaAccess) { mediaSource?.nowPlaying ?: flowOf(null) }.collectAsState(initial = null)
             // Keyed on time too, so the weather's "Updated 3h ago" ages with the clock.
@@ -111,28 +110,26 @@ fun HomeScreen(
                     mediaAccess = mediaSource == null || mediaAccess, nowPlaying = nowPlaying, settings = settings,
                 )
             }
-            GlanceCards(cards, Modifier.padding(top = 24.dp, start = 16.dp, end = 16.dp), media = mediaSource, onSetCity = onSetCity, onRetryWeather = onRetryWeather)
+            GlanceCards(cards, Modifier.padding(top = 8.dp), media = mediaSource, onSetCity = onSetCity, onRetryWeather = onRetryWeather)
         }
-        Box(Modifier.align(Alignment.BottomCenter)) { favorites() }
+        Box(Modifier.align(Alignment.BottomStart).padding(start = 28.dp, end = 28.dp, bottom = 24.dp)) { favorites() }
     }
 }
 
 @Composable
 private fun Clock(time: String, style: ClockStyle, modifier: Modifier = Modifier) {
-    BoxWithConstraints(modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+    BoxWithConstraints(modifier.fillMaxWidth()) {
         // shortcut: sized from the screen width in dp, so it ignores the system font scale; scale it by a clamped fontScale if users want that.
-        val base = with(LocalDensity.current) { (maxWidth / 3.4f).toSp() }
+        val base = with(LocalDensity.current) { (maxWidth * 0.6f / 3.4f).toSp() }
         // The wide styles overflow at that size: shrink step by step until the whole time fits on one line.
         var shrink by remember(time, style, maxWidth) { mutableStateOf(1f) }
         val size = base * shrink
         Text(
             text = time,
-            modifier = Modifier.fillMaxWidth(),
             style = TextStyle(
                 fontFamily = rememberClockFontFamily(style),
                 fontSize = size,
                 lineHeight = size,
-                textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.primary,
             ),
             maxLines = 1,

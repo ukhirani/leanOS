@@ -4,16 +4,13 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.provider.AlarmClock
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,39 +21,34 @@ import androidx.compose.ui.unit.dp
 import com.ukhirani.leanos.platform.NextAlarm
 import com.ukhirani.leanos.ui.springPress
 
-/** The row of tonal chips under the clock. */
+/** The info line under the clock: "Wed, 4 Nov · 82% · ⏰ 7:00 · in 21h 19m". Each segment keeps its own tap. */
 @Composable
 fun GlanceChipRow(chips: List<GlanceChip>, alarm: NextAlarm?, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    FlowRow(
-        modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-    ) {
-        chips.forEach { chip ->
+    FlowRow(modifier) {
+        chips.forEachIndexed { index, chip ->
             val onClick: (() -> Unit)? = when (chip.kind) {
                 GlanceChip.Kind.Date -> ({ context.openCalendarApp() })
                 GlanceChip.Kind.Alarm -> ({ context.openAlarmApp(alarm) })
                 GlanceChip.Kind.Battery -> null
             }
-            Chip(chip, onClick)
+            Row(Modifier.heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    (if (onClick != null) Modifier.springPress(onClick) else Modifier)
+                        .heightIn(min = 48.dp)
+                        .semantics { contentDescription = chip.description },
+                    contentAlignment = Alignment.Center,
+                ) { InfoText(chip.text) }
+                // The separator rides with its segment, so a wrapped line never starts with one.
+                if (index < chips.lastIndex) InfoText("·", Modifier.padding(horizontal = 8.dp))
+            }
         }
     }
 }
 
 @Composable
-private fun Chip(chip: GlanceChip, onClick: (() -> Unit)?) {
-    val shape = RoundedCornerShape(50)
-    val color = MaterialTheme.colorScheme.secondaryContainer
-    val modifier = (if (onClick != null) Modifier.springPress(onClick) else Modifier)
-        .minimumInteractiveComponentSize()
-        .semantics { contentDescription = chip.description }
-    val content: @Composable () -> Unit = {
-        Box(Modifier.heightIn(min = 32.dp).padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
-            Text(chip.text, style = MaterialTheme.typography.labelLarge)
-        }
-    }
-    Surface(modifier = modifier, shape = shape, color = color, content = content)
-}
+private fun InfoText(text: String, modifier: Modifier = Modifier) =
+    Text(text, modifier, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
 /** Opens the alarm app: the next alarm's own intent if it set one, else the system alarm list. */
 fun Context.openAlarmApp(alarm: NextAlarm?) {

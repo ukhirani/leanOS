@@ -32,11 +32,11 @@ fun ClockGlow(modifier: Modifier = Modifier) {
         modifier.drawBehind {
             // Read the frame time only while drawing, so the drift redraws without recomposing.
             val o = GlowDrift.offset(elapsed.value, animationsEnabled)
-            val r = size.minDimension * 0.6f
+            val r = size.minDimension * 0.5f
             fun blob(color: Color, cx: Float, cy: Float) {
                 val center = Offset(cx, cy)
                 drawCircle(
-                    Brush.radialGradient(listOf(color.copy(alpha = 0.7f), Color.Transparent), center, r),
+                    Brush.radialGradient(listOf(color.copy(alpha = 0.3f), Color.Transparent), center, r),
                     radius = r,
                     center = center,
                 )
