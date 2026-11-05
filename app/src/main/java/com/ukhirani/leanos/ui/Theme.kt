@@ -5,6 +5,7 @@ package com.ukhirani.leanos.ui
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
@@ -14,6 +15,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
@@ -36,7 +38,7 @@ fun LeanTheme(settings: Settings = Settings(), content: @Composable () -> Unit) 
         ColorSource.WALLPAPER -> dynamic
         ColorSource.FIXED_ACCENT -> dynamic.withAccent(Color(settings.accent.argb), dark)
     }
-    MaterialTheme(colorScheme = colors, content = content)
+    MaterialTheme(colorScheme = colors, typography = leanTypography, content = content)
 }
 
 private fun ColorScheme.withAccent(accent: Color, dark: Boolean): ColorScheme {
@@ -77,3 +79,22 @@ fun clockFontFamily(style: ClockStyle): FontFamily = FontFamily(
 
 @Composable
 fun rememberClockFontFamily(style: ClockStyle): FontFamily = remember(style) { clockFontFamily(style) }
+
+/** The Material type scale, unchanged in size/weight/line height, but all in Google Sans Flex at its default axes. */
+private val leanTypography: Typography = Typography().let { base ->
+    fun TextStyle.flex(): TextStyle {
+        val w = fontWeight ?: FontWeight.Normal
+        return copy(
+            fontFamily = FontFamily(
+                Font(R.font.google_sans_flex, weight = w, variationSettings = FontVariation.Settings(FontVariation.weight(w.weight))),
+            ),
+        )
+    }
+    return@let base.copy(
+        displayLarge = base.displayLarge.flex(), displayMedium = base.displayMedium.flex(), displaySmall = base.displaySmall.flex(),
+        headlineLarge = base.headlineLarge.flex(), headlineMedium = base.headlineMedium.flex(), headlineSmall = base.headlineSmall.flex(),
+        titleLarge = base.titleLarge.flex(), titleMedium = base.titleMedium.flex(), titleSmall = base.titleSmall.flex(),
+        bodyLarge = base.bodyLarge.flex(), bodyMedium = base.bodyMedium.flex(), bodySmall = base.bodySmall.flex(),
+        labelLarge = base.labelLarge.flex(), labelMedium = base.labelMedium.flex(), labelSmall = base.labelSmall.flex(),
+    )
+}
