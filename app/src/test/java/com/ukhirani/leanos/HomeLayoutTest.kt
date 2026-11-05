@@ -144,8 +144,8 @@ class HomeLayoutTest {
     @Test
     fun `cards follow the chosen order`() {
         val settings = Settings(weatherCity = city, cardOrder = listOf(Feature.Media, Feature.ScreenTime, Feature.Weather))
-        // Weather has a city but no reading yet, so it waits.
-        assertEquals(listOf(Feature.Media, Feature.ScreenTime), customized(settings))
+        // Weather has a city but no reading yet, so it shows as unavailable.
+        assertEquals(listOf(Feature.Media, Feature.ScreenTime, Feature.Weather), customized(settings))
     }
 
     @Test

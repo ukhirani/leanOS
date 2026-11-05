@@ -30,6 +30,11 @@ sealed interface GlanceCard {
         override val feature get() = Feature.Weather
     }
 
+    /** A city is set but no weather has been fetched yet (the first fetch failed); tapping retries. */
+    data class WeatherUnavailable(val city: String) : GlanceCard {
+        override val feature get() = Feature.Weather
+    }
+
     /** What's playing, with artwork when the app gives one. */
     data class Media(val packageName: String, val title: String, val artist: String?, val artwork: Bitmap?, val playing: Boolean) : GlanceCard {
         override val feature get() = Feature.Media
@@ -56,7 +61,7 @@ class HomeLayout(private val format: GlanceFormat) {
 
     /**
      * Glance cards in the user's order (default: screen time, weather, media), minus hidden ones. Screen time waits for its first reading; without usage access it is an enable chip.
-     * Weather shows only when [settings] is given: a "set your city" chip until a city is picked, then the cached weather.
+     * Weather shows only when [settings] is given: a "set your city" chip until a city is picked, then the cached weather, or "unavailable" while there is none.
      */
     fun cards(
         usageAccess: Boolean,
@@ -86,9 +91,10 @@ class HomeLayout(private val format: GlanceFormat) {
 
     private fun weatherCard(settings: Settings): GlanceCard? {
         val city = settings.weatherCity ?: return GlanceCard.Enable(GlanceCard.Feature.Weather)
-        val weather = settings.weather ?: return null
+        val name = city.name.substringBefore(',')
+        val weather = settings.weather ?: return GlanceCard.WeatherUnavailable(name)
         return GlanceCard.Weather(
-            city = city.name.substringBefore(','),
+            city = name,
             temperature = format.temperatureText(weather.celsius, settings),
             condition = format.conditionText(weather.code),
             age = format.weatherAgeText(weather.at),

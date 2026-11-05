@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ukhirani.leanos.platform.NextAlarm
+import com.ukhirani.leanos.ui.springPress
 
 /** The row of tonal chips under the clock. */
 @Composable
@@ -46,7 +47,7 @@ fun GlanceChipRow(chips: List<GlanceChip>, alarm: NextAlarm?, modifier: Modifier
 private fun Chip(chip: GlanceChip, onClick: (() -> Unit)?) {
     val shape = RoundedCornerShape(50)
     val color = MaterialTheme.colorScheme.secondaryContainer
-    val modifier = Modifier
+    val modifier = (if (onClick != null) Modifier.springPress(onClick) else Modifier)
         .minimumInteractiveComponentSize()
         .semantics { contentDescription = chip.description }
     val content: @Composable () -> Unit = {
@@ -54,11 +55,7 @@ private fun Chip(chip: GlanceChip, onClick: (() -> Unit)?) {
             Text(chip.text, style = MaterialTheme.typography.labelLarge)
         }
     }
-    if (onClick != null) {
-        Surface(onClick = onClick, modifier = modifier, shape = shape, color = color, content = content)
-    } else {
-        Surface(modifier = modifier, shape = shape, color = color, content = content)
-    }
+    Surface(modifier = modifier, shape = shape, color = color, content = content)
 }
 
 /** Opens the alarm app: the next alarm's own intent if it set one, else the system alarm list. */

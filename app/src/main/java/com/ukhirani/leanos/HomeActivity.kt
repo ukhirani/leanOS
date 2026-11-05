@@ -157,6 +157,7 @@ class HomeActivity : ComponentActivity() {
                     onSwipeUp = openDrawer, onOpenSettings = openSettings,
                     usageAccess = usageAccess, screenTime = screenTimeToday,
                     onSetCity = { settingsPage = SettingsPage.WeatherCity },
+                    onRetryWeather = { refreshWeather() },
                     mediaSource = mediaSource, mediaAccess = mediaAccess,
                 ) {
                     FavoritesRow(favorites, installedApps::icon, installedApps::launch, showMenu, iconSize)
@@ -269,17 +270,17 @@ class HomeActivity : ComponentActivity() {
 
     /** The long-press menu for [app]. New per-app actions go in this list. */
     private fun appActions(app: InstalledApp, isFavorite: Boolean, scope: CoroutineScope, snackbar: SnackbarHostState) = listOf(
-        AppAction(if (isFavorite) "Remove from favorites" else "Add to favorites") {
+        AppAction(getString(if (isFavorite) R.string.action_remove_favorite else R.string.action_add_favorite)) {
             scope.launch {
                 if (appCatalog.toggleFavorite(app) == FavoriteChange.LimitReached) {
-                    snackbar.showSnackbar("You can have up to ${AppCatalog.MAX_FAVORITES} favorites")
+                    snackbar.showSnackbar(getString(R.string.favorites_limit, AppCatalog.MAX_FAVORITES))
                 }
             }
         },
-        AppAction("Hide") { scope.launch { appCatalog.setHidden(app, true) } },
+        AppAction(getString(R.string.action_hide)) { scope.launch { appCatalog.setHidden(app, true) } },
         AppAction(getString(R.string.limit_set)) { limitFor = app },
-        AppAction("App info") { installedApps.openAppInfo(app) },
-        AppAction("Uninstall") { installedApps.uninstall(app) },
+        AppAction(getString(R.string.action_app_info)) { installedApps.openAppInfo(app) },
+        AppAction(getString(R.string.action_uninstall)) { installedApps.uninstall(app) },
     )
 
     // Screen time refreshes each time home becomes visible; reading a day of events stays off the main thread.

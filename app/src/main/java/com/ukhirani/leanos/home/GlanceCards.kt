@@ -3,6 +3,7 @@ package com.ukhirani.leanos.home
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,10 +27,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ukhirani.leanos.R
 import com.ukhirani.leanos.platform.MediaSource
+import com.ukhirani.leanos.ui.springPress
 
 /** The glance cards under the chips, in the order HomeLayout gives them. */
 @Composable
@@ -39,6 +43,7 @@ fun GlanceCards(
     modifier: Modifier = Modifier,
     media: MediaSource? = null,
     onSetCity: () -> Unit = {},
+    onRetryWeather: () -> Unit = {},
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         cards.forEach { card ->
@@ -46,6 +51,7 @@ fun GlanceCards(
                 is GlanceCard.ScreenTime -> ScreenTimeCard(card)
                 is GlanceCard.Weather -> WeatherCard(card, onSetCity)
                 is GlanceCard.Media -> MediaCard(card, media)
+                is GlanceCard.WeatherUnavailable -> TextChip(stringResource(R.string.weather_unavailable), onRetryWeather)
                 is GlanceCard.Enable -> EnableChip(card.feature, onSetCity)
             }
         }
@@ -55,15 +61,14 @@ fun GlanceCards(
 @Composable
 private fun WeatherCard(card: GlanceCard.Weather, onClick: () -> Unit) {
     Surface(
-        onClick = onClick,
         // TalkBack reads the texts inside: "Weather in Paris, 11°C, Overcast".
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.springPress(onClick).fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                "Weather in ${card.city}",
+                stringResource(R.string.weather_in, card.city),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -87,14 +92,13 @@ private fun ScreenTimeCard(card: GlanceCard.ScreenTime) {
     val rows = if (expanded) card.all else card.top
     val labels = remember(rows) { rows.associate { it.packageName to context.appLabel(it.packageName) } }
     Surface(
-        onClick = { expanded = !expanded },
         // TalkBack reads the texts inside: "Screen time, 1h 15m, Chat, 50m, ...".
-        modifier = Modifier.fillMaxWidth().animateContentSize(),
+        modifier = Modifier.springPress({ expanded = !expanded }).fillMaxWidth().animateContentSize(),
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Screen time", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.glance_card_screen_time), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(card.total, style = MaterialTheme.typography.headlineMedium)
             rows.forEach { app ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -115,8 +119,7 @@ private fun ScreenTimeCard(card: GlanceCard.ScreenTime) {
 @Composable
 private fun MediaCard(card: GlanceCard.Media, media: MediaSource?) {
     Surface(
-        onClick = { media?.open() },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.springPress({ media?.open() }).fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
@@ -142,20 +145,20 @@ private fun MediaCard(card: GlanceCard.Media, media: MediaSource?) {
                     )
                 }
             }
-            MediaButton(android.R.drawable.ic_media_previous, "Previous") { media?.previous() }
+            MediaButton(android.R.drawable.ic_media_previous, stringResource(R.string.media_previous)) { media?.previous() }
             if (card.playing) {
-                MediaButton(android.R.drawable.ic_media_pause, "Pause") { media?.playPause() }
+                MediaButton(android.R.drawable.ic_media_pause, stringResource(R.string.media_pause)) { media?.playPause() }
             } else {
-                MediaButton(android.R.drawable.ic_media_play, "Play") { media?.playPause() }
+                MediaButton(android.R.drawable.ic_media_play, stringResource(R.string.media_play)) { media?.playPause() }
             }
-            MediaButton(android.R.drawable.ic_media_next, "Next") { media?.next() }
+            MediaButton(android.R.drawable.ic_media_next, stringResource(R.string.media_next)) { media?.next() }
         }
     }
 }
 
 @Composable
 private fun MediaButton(icon: Int, description: String, onClick: () -> Unit) {
-    IconButton(onClick = onClick) {
+    Box(Modifier.size(48.dp).springPress(onClick, role = Role.Button), contentAlignment = Alignment.Center) {
         Icon(painterResource(icon), contentDescription = description, Modifier.size(24.dp))
     }
 }
@@ -164,20 +167,24 @@ private fun MediaButton(icon: Int, description: String, onClick: () -> Unit) {
 @Composable
 private fun EnableChip(feature: GlanceCard.Feature, onSetCity: () -> Unit) {
     val context = LocalContext.current
-    val text = when (feature) {
-        GlanceCard.Feature.ScreenTime -> "Screen time · tap to enable"
-        GlanceCard.Feature.Weather -> "Weather · set your city"
-        GlanceCard.Feature.Media -> "Media · tap to enable"
+    val text = stringResource(when (feature) {
+        GlanceCard.Feature.ScreenTime -> R.string.enable_screen_time
+        GlanceCard.Feature.Weather -> R.string.enable_weather
+        GlanceCard.Feature.Media -> R.string.enable_media
+    })
+    TextChip(text) {
+        when (feature) {
+            GlanceCard.Feature.ScreenTime -> context.openUsageAccessSettings()
+            GlanceCard.Feature.Weather -> onSetCity()
+            GlanceCard.Feature.Media -> context.openNotificationAccessSettings()
+        }
     }
+}
+
+@Composable
+private fun TextChip(text: String, onClick: () -> Unit) {
     Surface(
-        onClick = {
-            when (feature) {
-                GlanceCard.Feature.ScreenTime -> context.openUsageAccessSettings()
-                GlanceCard.Feature.Weather -> onSetCity()
-                GlanceCard.Feature.Media -> context.openNotificationAccessSettings()
-            }
-        },
-        modifier = Modifier.heightIn(min = 48.dp),
+        modifier = Modifier.springPress(onClick).heightIn(min = 48.dp),
         shape = RoundedCornerShape(50),
         color = MaterialTheme.colorScheme.secondaryContainer,
     ) {

@@ -8,4 +8,13 @@
     <string name="focus_prompt_open">Open settings</string>
     <string name="focus_prompt_not_now">Not now</string>
     <string name="settings_grayscale_icons">Grayscale icons</string>
+    <string name="search_apps">Search apps</string>
+    <string name="app_options">App options</string>
+    <string name="app_open">Open</string>
+    <string name="action_add_favorite">Add to favorites</string>
+    <string name="action_remove_favorite">Remove from favorites</string>
+    <string name="action_hide">Hide</string>
+    <string name="action_app_info">App info</string>
+    <string name="action_uninstall">Uninstall</string>
+    <string name="favorites_limit">You can have up to %1$d favorites</string>
 </resources>

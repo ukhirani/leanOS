@@ -23,9 +23,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ukhirani.leanos.R
 import com.ukhirani.leanos.platform.AlarmSource
 import com.ukhirani.leanos.platform.BackgroundMode
 import com.ukhirani.leanos.platform.BatterySource
@@ -51,6 +53,7 @@ fun HomeScreen(
     usageAccess: Boolean = false,
     screenTime: ScreenTimeToday? = null,
     onSetCity: () -> Unit = {},
+    onRetryWeather: () -> Unit = {},
     mediaSource: MediaSource? = null,
     mediaAccess: Boolean = false,
     favorites: @Composable () -> Unit = {},
@@ -94,7 +97,7 @@ fun HomeScreen(
             Clock(
                 time,
                 settings.clockStyle,
-                Modifier.clickable(onClickLabel = "Open alarms") { context.openAlarmApp(alarm) },
+                Modifier.clickable(onClickLabel = stringResource(R.string.open_alarms)) { context.openAlarmApp(alarm) },
             )
             // Recomputed each minute with the clock, so the alarm countdown and date stay current.
             val chips = remember(time, settings, alarm, battery) { homeLayout.chips(settings, alarm, battery) }
@@ -108,7 +111,7 @@ fun HomeScreen(
                     mediaAccess = mediaSource == null || mediaAccess, nowPlaying = nowPlaying, settings = settings,
                 )
             }
-            GlanceCards(cards, Modifier.padding(top = 24.dp, start = 16.dp, end = 16.dp), media = mediaSource, onSetCity = onSetCity)
+            GlanceCards(cards, Modifier.padding(top = 24.dp, start = 16.dp, end = 16.dp), media = mediaSource, onSetCity = onSetCity, onRetryWeather = onRetryWeather)
         }
         Box(Modifier.align(Alignment.BottomCenter)) { favorites() }
     }

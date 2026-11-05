@@ -43,12 +43,12 @@ class WeatherFormatTest {
     }
 
     @Test
-    fun `recent weather carries no age`() {
-        assertNull(format.weatherAgeText(at("2026-11-04T11:01:00+01:00")))
+    fun `weather within the refresh age carries no age`() {
+        assertNull(format.weatherAgeText(at("2026-11-04T11:31:00+01:00")))
     }
 
     @Test
-    fun `weather an hour old or more says how old it is`() {
+    fun `weather past the refresh age says how old it is`() {
         assertEquals("Updated 1h ago", format.weatherAgeText(at("2026-11-04T11:00:00+01:00")))
         assertEquals("Updated 5h ago", format.weatherAgeText(at("2026-11-04T06:30:00+01:00")))
         assertEquals("Updated 2d ago", format.weatherAgeText(at("2026-11-02T09:00:00+01:00")))

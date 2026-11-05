@@ -3,6 +3,7 @@ package com.ukhirani.leanos.home
 import com.ukhirani.leanos.platform.BatteryState
 import com.ukhirani.leanos.platform.ClockSource
 import com.ukhirani.leanos.platform.Settings
+import com.ukhirani.leanos.weather.WeatherRefresh
 import java.time.Duration
 import java.time.Instant
 import java.time.format.DateTimeFormatter
@@ -57,11 +58,12 @@ class GlanceFormat(private val clock: ClockSource, private val locale: Locale = 
         else -> "Unknown"
     }
 
-    /** "Updated 3h ago" once the weather is an hour old, else null. */
+    /** "Updated 45m ago" once the weather is past the refresh age, else null. */
     fun weatherAgeText(at: Instant): String? {
         val age = Duration.between(at, clock.now().toInstant())
         return when {
-            age.toHours() < 1 -> null
+            age < WeatherRefresh.MAX_AGE -> null
+            age.toHours() < 1 -> "Updated ${age.toMinutes()}m ago"
             age.toDays() < 1 -> "Updated ${age.toHours()}h ago"
             else -> "Updated ${age.toDays()}d ago"
         }

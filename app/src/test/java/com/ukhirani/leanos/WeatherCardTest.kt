@@ -45,8 +45,15 @@ class WeatherCardTest {
     }
 
     @Test
-    fun `with a city but no weather yet the card waits for its first reading`() {
-        assertEquals(emptyList<GlanceCard>(), cards(Settings(weatherCity = paris)))
+    fun `with a city but no weather yet the card says it is unavailable and can be retried`() {
+        assertEquals(listOf(GlanceCard.WeatherUnavailable("Paris")), cards(Settings(weatherCity = paris)))
+    }
+
+    @Test
+    fun `the age label appears once the weather is past the refresh age`() {
+        fun age(iso: String) = (cards(Settings(weatherCity = paris, weather = CurrentWeather(9.0, 61, at(iso)))).single() as GlanceCard.Weather).age
+        assertEquals(null, age("2026-11-04T11:40:00+01:00"))
+        assertEquals("Updated 45m ago", age("2026-11-04T11:15:00+01:00"))
     }
 
     @Test
