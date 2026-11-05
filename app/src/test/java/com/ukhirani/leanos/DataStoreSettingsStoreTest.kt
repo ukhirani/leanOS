@@ -143,9 +143,15 @@ class DataStoreSettingsStoreTest {
     @Test
     fun `hidden apps survive a restart`() = runBlocking {
         val file = File(tmp.root, "d.preferences_pb")
-        DataStoreSettingsStore(dataStore(file)).setHidden(setOf("pkg.a", "pkg.b"))
+        DataStoreSettingsStore(dataStore(file)).run {
+            setFavorites(listOf("pkg.a", "pkg.c"))
+            setAppHidden("pkg.a", true)
+            setAppHidden("pkg.b", true)
+        }
         scopes.forEach { it.coroutineContext[Job]!!.cancelAndJoin() }
-        assertEquals(setOf("pkg.a", "pkg.b"), DataStoreSettingsStore(dataStore(file)).settings.first().hidden)
+        val settings = DataStoreSettingsStore(dataStore(file)).settings.first()
+        assertEquals(setOf("pkg.a", "pkg.b"), settings.hidden)
+        assertEquals(listOf("pkg.c"), settings.favorites)
     }
 
     @Test

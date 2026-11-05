@@ -45,9 +45,7 @@ class AppCatalog(private val source: InstalledAppsSource, private val settingsSt
 
     /** Hides [app]'s package from the drawer and search (and drops it from favorites), or brings it back. */
     suspend fun setHidden(app: InstalledApp, hidden: Boolean) {
-        val settings = settingsStore.settings.first()
-        if (hidden) settingsStore.setFavorites(settings.favorites - app.packageName)
-        settingsStore.setHidden(if (hidden) settings.hidden + app.packageName else settings.hidden - app.packageName)
+        settingsStore.setAppHidden(app.packageName, hidden)
     }
 
     /**

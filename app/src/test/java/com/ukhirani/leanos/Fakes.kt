@@ -76,7 +76,10 @@ class FakeSettingsStore(initial: Settings = Settings()) : SettingsStore {
         it.copy(dailyLimits = if (minutes == null) it.dailyLimits - packageName else it.dailyLimits + (packageName to minutes))
     }
     override suspend fun setGrayscaleIcons(enabled: Boolean) = state.update { it.copy(grayscaleIcons = enabled) }
-    override suspend fun setHidden(packages: Set<String>) = state.update { it.copy(hidden = packages) }
+    override suspend fun setAppHidden(packageName: String, hidden: Boolean) = state.update {
+        if (hidden) it.copy(hidden = it.hidden + packageName, favorites = it.favorites - packageName)
+        else it.copy(hidden = it.hidden - packageName)
+    }
     override suspend fun setGlanceCards(order: List<com.ukhirani.leanos.home.GlanceCard.Feature>, hidden: Set<com.ukhirani.leanos.home.GlanceCard.Feature>) =
         state.update { it.copy(cardOrder = order, hiddenCards = hidden) }
     override suspend fun setLimitExtension(packageName: String, at: java.time.Instant) =

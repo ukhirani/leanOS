@@ -132,8 +132,12 @@ class DataStoreSettingsStore internal constructor(private val store: DataStore<P
         store.edit { it[GRAYSCALE_ICONS] = enabled }
     }
 
-    override suspend fun setHidden(packages: Set<String>) {
-        store.edit { it[HIDDEN] = packages }
+    override suspend fun setAppHidden(packageName: String, hidden: Boolean) {
+        store.edit { prefs ->
+            val current = prefs[HIDDEN].orEmpty()
+            prefs[HIDDEN] = if (hidden) current + packageName else current - packageName
+            if (hidden) prefs[FAVORITES] = prefs[FAVORITES].orEmpty().split('\n').filter { it.isNotEmpty() && it != packageName }.joinToString("\n")
+        }
     }
 
     // Enums are stored by name; a name this version doesn't know reads as the default.

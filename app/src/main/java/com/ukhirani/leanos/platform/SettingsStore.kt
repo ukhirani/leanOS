@@ -74,7 +74,9 @@ interface SettingsStore {
     /** Sets [packageName]'s daily limit in minutes; null removes it. */
     suspend fun setDailyLimit(packageName: String, minutes: Int?)
     suspend fun setGrayscaleIcons(enabled: Boolean)
-    suspend fun setHidden(packages: Set<String>)
+
+    /** Hides or unhides [packageName]; hiding also drops it from favorites, in one atomic update. */
+    suspend fun setAppHidden(packageName: String, hidden: Boolean)
 
     suspend fun setGlanceCards(order: List<GlanceCard.Feature>, hidden: Set<GlanceCard.Feature>)
 
