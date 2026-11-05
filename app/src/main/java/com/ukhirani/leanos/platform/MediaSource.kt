@@ -19,7 +19,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
-/** What the active media session is playing. Artwork is null when the app gives none. */
+/** What the active media session is playing; [playing] covers buffering too. Artwork is null when the app gives none. */
 data class NowPlaying(
     val packageName: String,
     val title: String,
@@ -65,31 +65,34 @@ class AndroidMediaSource(context: Context) : MediaSource {
             awaitClose()
             return@callbackFlow
         }
+        // This collection's own controller: a finished collection must not clear a newer one's.
+        var mine: MediaController? = null
         val callback = object : MediaController.Callback() {
-            override fun onMetadataChanged(metadata: MediaMetadata?) { trySend(controller?.toNowPlaying()) }
-            override fun onPlaybackStateChanged(state: PlaybackState?) { trySend(controller?.toNowPlaying()) }
+            override fun onMetadataChanged(metadata: MediaMetadata?) { trySend(mine?.toNowPlaying()) }
+            override fun onPlaybackStateChanged(state: PlaybackState?) { trySend(mine?.toNowPlaying()) }
             override fun onSessionDestroyed() { trySend(null) }
         }
         fun pick(active: List<MediaController>?) {
-            controller?.unregisterCallback(callback)
+            mine?.unregisterCallback(callback)
             // Prefer a session that's playing; the system lists the rest most recent first.
-            controller = active.orEmpty().let { list -> list.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING } ?: list.firstOrNull() }
-            controller?.registerCallback(callback, main)
-            trySend(controller?.toNowPlaying())
+            mine = active.orEmpty().let { list -> list.firstOrNull { it.isPlaying() } ?: list.firstOrNull() }
+            controller = mine
+            mine?.registerCallback(callback, main)
+            trySend(mine?.toNowPlaying())
         }
         val changed = MediaSessionManager.OnActiveSessionsChangedListener { pick(it) }
         sessions.addOnActiveSessionsChangedListener(changed, listener, main)
         pick(sessions.getActiveSessions(listener))
         awaitClose {
             sessions.removeOnActiveSessionsChangedListener(changed)
-            controller?.unregisterCallback(callback)
-            controller = null
+            mine?.unregisterCallback(callback)
+            if (controller === mine) controller = null
         }
     }
 
     override fun playPause() {
         val c = controller ?: return
-        if (c.playbackState?.state == PlaybackState.STATE_PLAYING) c.transportControls.pause() else c.transportControls.play()
+        if (c.isPlaying()) c.transportControls.pause() else c.transportControls.play()
     }
 
     override fun next() { controller?.transportControls?.skipToNext() }
@@ -129,7 +132,10 @@ class AndroidMediaSource(context: Context) : MediaSource {
             artwork = meta.getBitmap(MediaMetadata.METADATA_KEY_ART)
                 ?: meta.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
                 ?: meta.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON),
-            playing = playbackState?.state == PlaybackState.STATE_PLAYING,
+            playing = isPlaying(),
         )
     }
+
+    private fun MediaController.isPlaying() =
+        playbackState?.state.let { it == PlaybackState.STATE_PLAYING || it == PlaybackState.STATE_BUFFERING }
 }

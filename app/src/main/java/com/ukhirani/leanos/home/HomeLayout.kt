@@ -73,10 +73,10 @@ class HomeLayout(private val format: GlanceFormat) {
             }
         }
         if (settings != null) weatherCard(settings)?.let(::add)
-        // Media shows only while a session is active; without notification access it is an enable chip.
+        // Media shows only while a session is playing or buffering (paused and stopped ones hide it); without notification access it is an enable chip.
         when {
             !mediaAccess -> add(GlanceCard.Enable(GlanceCard.Feature.Media))
-            nowPlaying != null -> with(nowPlaying) { add(GlanceCard.Media(packageName, title, artist, artwork, playing)) }
+            nowPlaying?.playing == true -> with(nowPlaying) { add(GlanceCard.Media(packageName, title, artist, artwork, playing)) }
         }
     }.let { cards ->
         // The user's order and visibility apply last, on top of the permission and media-active rules above.

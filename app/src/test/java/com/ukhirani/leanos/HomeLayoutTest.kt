@@ -112,9 +112,9 @@ class HomeLayoutTest {
     }
 
     @Test
-    fun `paused media keeps its card so it can be resumed`() = runBlocking {
+    fun `paused or stopped media hides its card`() = runBlocking {
         media.play(NowPlaying("pkg.music", title = "Song", artist = null, playing = false))
-        assertEquals(listOf(GlanceCard.Media("pkg.music", "Song", null, null, playing = false)), mediaCards())
+        assertEquals(emptyList<GlanceCard>(), mediaCards())
     }
 
     @Test
