@@ -7,6 +7,7 @@ import android.app.role.RoleManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
+import com.ukhirani.leanos.home.openAccessibilitySettings
 import com.ukhirani.leanos.home.openNotificationAccessSettings
 import com.ukhirani.leanos.home.openUsageAccessSettings
 import com.ukhirani.leanos.onboarding.SetupScreen
@@ -61,6 +62,7 @@ import com.ukhirani.leanos.platform.SystemClockSource
 import com.ukhirani.leanos.settings.AboutScreen
 import com.ukhirani.leanos.settings.HiddenAppsScreen
 import com.ukhirani.leanos.settings.LimitDialog
+import com.ukhirani.leanos.settings.LimitsAccess
 import com.ukhirani.leanos.settings.LimitsScreen
 import com.ukhirani.leanos.settings.SettingsScreen
 import com.ukhirani.leanos.ui.LeanTheme
@@ -130,8 +132,7 @@ class HomeActivity : ComponentActivity() {
                 roleRequest.launch(getSystemService(RoleManager::class.java).createRequestRoleIntent(RoleManager.ROLE_HOME))
             SetupStep.UsageAccess -> openUsageAccessSettings()
             SetupStep.NotificationAccess -> openNotificationAccessSettings()
-            SetupStep.Accessibility ->
-                startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            SetupStep.Accessibility -> openAccessibilitySettings()
             SetupStep.WeatherCity -> Unit
         }
     }
@@ -150,6 +151,7 @@ class HomeActivity : ComponentActivity() {
                 val showMenu = remember { { app: InstalledApp -> menuFor = app } }
                 val favorites by appCatalog.favorites.collectAsState(initial = emptyList())
                 val iconSize = settings.iconSize.dp.dp
+                val limitsWork = LimitsAccess(usageAccess, SetupStep.Accessibility in setupGranted)
                 HomeScreen(
                     homeClock, settingsStore, homeGestures, homeLayout, alarmSource, batterySource,
                     onSwipeUp = openDrawer, onOpenSettings = openSettings,
@@ -211,6 +213,7 @@ class HomeActivity : ComponentActivity() {
                             settingsStore,
                             labelOf = { pkg -> installed.firstOrNull { it.packageName == pkg }?.label ?: pkg },
                             usage = screenTimeToday,
+                            access = limitsWork,
                             durationText = GlanceFormat(SystemClockSource)::durationText,
                             onBack = { settingsPage = SettingsPage.Settings },
                         )
@@ -236,7 +239,9 @@ class HomeActivity : ComponentActivity() {
                     AppActionsSheet(app, appActions(app, isFavorite, scope, snackbar)) { menuFor = null }
                 }
                 limitFor?.let { app ->
-                    LimitDialog(app.label, settings.dailyLimits[app.packageName], onDismiss = { limitFor = null }) { minutes ->
+                    LimitDialog(
+                        app.label, settings.dailyLimits[app.packageName], limitsWork, onDismiss = { limitFor = null },
+                    ) { minutes ->
                         scope.launch { settingsStore.setDailyLimit(app.packageName, minutes) }
                     }
                 }

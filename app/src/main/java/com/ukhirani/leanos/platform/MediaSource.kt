@@ -1,6 +1,5 @@
 package com.ukhirani.leanos.platform
 
-import android.app.ActivityOptions
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.ComponentName
@@ -11,10 +10,10 @@ import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.service.notification.NotificationListenerService
+import com.ukhirani.leanos.home.sendFromForeground
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -102,16 +101,7 @@ class AndroidMediaSource(context: Context) : MediaSource {
         val c = controller ?: return
         try {
             val pending = c.sessionActivity ?: return launch(c.packageName)
-            // Android 14+ only lets the player's intent start an activity if we, the visible app, opt in.
-            val options = if (Build.VERSION.SDK_INT >= 34) {
-                @Suppress("DEPRECATION")
-                ActivityOptions.makeBasic()
-                    .setPendingIntentBackgroundActivityStartMode(ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED)
-                    .toBundle()
-            } else {
-                null
-            }
-            pending.send(context, 0, null, null, null, null, options)
+            pending.sendFromForeground(context)
         } catch (_: PendingIntent.CanceledException) {
             launch(c.packageName)
         }

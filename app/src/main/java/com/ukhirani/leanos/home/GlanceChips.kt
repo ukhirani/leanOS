@@ -1,11 +1,8 @@
 package com.ukhirani.leanos.home
 
-import android.app.ActivityOptions
 import android.app.PendingIntent
-import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.provider.AlarmClock
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -68,16 +65,7 @@ private fun Chip(chip: GlanceChip, onClick: (() -> Unit)?) {
 fun Context.openAlarmApp(alarm: NextAlarm?) {
     try {
         val pending = alarm?.showIntent ?: return startSafely(Intent(AlarmClock.ACTION_SHOW_ALARMS))
-        // Android 14+ only lets the alarm app's intent start an activity if we, the visible app, opt in.
-        val options = if (Build.VERSION.SDK_INT >= 34) {
-            @Suppress("DEPRECATION")
-            ActivityOptions.makeBasic()
-                .setPendingIntentBackgroundActivityStartMode(ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED)
-                .toBundle()
-        } else {
-            null
-        }
-        pending.send(this, 0, null, null, null, null, options)
+        pending.sendFromForeground(this)
     } catch (_: PendingIntent.CanceledException) {
         startSafely(Intent(AlarmClock.ACTION_SHOW_ALARMS))
     }
@@ -86,10 +74,4 @@ fun Context.openAlarmApp(alarm: NextAlarm?) {
 fun Context.openCalendarApp() =
     startSafely(Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_CALENDAR))
 
-private fun Context.startSafely(intent: Intent) {
-    try {
-        startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-    } catch (_: ActivityNotFoundException) {
-        // No app handles it: nothing to open.
-    }
-}
+private fun Context.startSafely(intent: Intent) = startFirstAvailable(intent)

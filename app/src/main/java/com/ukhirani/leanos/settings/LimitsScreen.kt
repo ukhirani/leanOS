@@ -1,7 +1,16 @@
 package com.ukhirani.leanos.settings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import com.ukhirani.leanos.home.openAccessibilitySettings
+import com.ukhirani.leanos.home.openUsageAccessSettings
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -27,12 +36,40 @@ import com.ukhirani.leanos.usage.ScreenTimeToday
 import java.time.Duration
 import kotlinx.coroutines.launch
 
+/** Whether daily limits can work: they need usage access to count and the Focus service to block. */
+data class LimitsAccess(val usage: Boolean, val focusService: Boolean)
+
+/** A tap-to-enable warning for each missing piece, so a limit never silently does nothing. */
+@Composable
+private fun LimitsWarning(access: LimitsAccess, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    Column(modifier) {
+        if (!access.usage) {
+            WarningRow(R.string.limits_need_usage) { context.openUsageAccessSettings() }
+        }
+        if (!access.focusService) {
+            WarningRow(R.string.limits_need_focus) { context.openAccessibilitySettings() }
+        }
+    }
+}
+
+@Composable
+private fun WarningRow(text: Int, onClick: () -> Unit) {
+    Text(
+        stringResource(text),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.error,
+    )
+}
+
 /** Every daily limit with today's usage against it; tap one to edit or remove it. */
 @Composable
 fun LimitsScreen(
     settingsStore: SettingsStore,
     labelOf: (String) -> String,
     usage: ScreenTimeToday?,
+    access: LimitsAccess,
     durationText: (Duration) -> String,
     onBack: () -> Unit,
 ) {
@@ -41,22 +78,25 @@ fun LimitsScreen(
     var editing by remember { mutableStateOf<String?>(null) }
     LeanScaffold(stringResource(R.string.limits_title), onBack) { modifier ->
         val limits = settings.dailyLimits.entries.sortedBy { labelOf(it.key).lowercase() }
-        if (limits.isEmpty()) ListItem(modifier = modifier, headlineContent = { Text(stringResource(R.string.limits_empty)) })
-        LazyColumn(modifier) {
-            items(limits, key = { it.key }) { (pkg, minutes) ->
-                val used = usage?.apps?.firstOrNull { it.packageName == pkg }?.duration ?: Duration.ZERO
-                ListItem(
-                    headlineContent = { Text(labelOf(pkg)) },
-                    supportingContent = {
-                        Text(stringResource(R.string.limits_usage, durationText(used), durationText(Duration.ofMinutes(minutes.toLong()))))
-                    },
-                    modifier = Modifier.clickable { editing = pkg },
-                )
+        Column(modifier) {
+            LimitsWarning(access)
+            if (limits.isEmpty()) ListItem(headlineContent = { Text(stringResource(R.string.limits_empty)) })
+            LazyColumn {
+                items(limits, key = { it.key }) { (pkg, minutes) ->
+                    val used = usage?.apps?.firstOrNull { it.packageName == pkg }?.duration ?: Duration.ZERO
+                    ListItem(
+                        headlineContent = { Text(labelOf(pkg)) },
+                        supportingContent = {
+                            Text(stringResource(R.string.limits_usage, durationText(used), durationText(Duration.ofMinutes(minutes.toLong()))))
+                        },
+                        modifier = Modifier.clickable { editing = pkg },
+                    )
+                }
             }
         }
     }
     editing?.let { pkg ->
-        LimitDialog(labelOf(pkg), settings.dailyLimits[pkg], onDismiss = { editing = null }) { minutes ->
+        LimitDialog(labelOf(pkg), settings.dailyLimits[pkg], access, onDismiss = { editing = null }) { minutes ->
             scope.launch { settingsStore.setDailyLimit(pkg, minutes) }
         }
     }
@@ -64,20 +104,23 @@ fun LimitsScreen(
 
 /** Sets an app's minutes per day. [onSave] gets null when the limit is removed. */
 @Composable
-fun LimitDialog(appLabel: String, current: Int?, onDismiss: () -> Unit, onSave: (Int?) -> Unit) {
+fun LimitDialog(appLabel: String, current: Int?, access: LimitsAccess, onDismiss: () -> Unit, onSave: (Int?) -> Unit) {
     var text by remember { mutableStateOf(current?.toString().orEmpty()) }
     val minutes = text.toIntOrNull()?.takeIf { it in 1..24 * 60 }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.limit_dialog_title, appLabel)) },
         text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it.filter(Char::isDigit).take(4) },
-                label = { Text(stringResource(R.string.limit_dialog_minutes)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-            )
+            Column {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it.filter(Char::isDigit).take(4) },
+                    label = { Text(stringResource(R.string.limit_dialog_minutes)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                )
+                LimitsWarning(access)
+            }
         },
         confirmButton = {
             TextButton(onClick = { onSave(minutes); onDismiss() }, enabled = minutes != null) {

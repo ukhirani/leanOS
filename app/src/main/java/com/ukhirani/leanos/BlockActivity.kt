@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.ukhirani.leanos.home.GlanceFormat
+import com.ukhirani.leanos.home.appLabel
 import com.ukhirani.leanos.platform.DataStoreSettingsStore
 import com.ukhirani.leanos.platform.Settings
 import com.ukhirani.leanos.platform.SystemClockSource
@@ -44,9 +45,7 @@ class BlockActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val pkg = intent.getStringExtra(EXTRA_PACKAGE).orEmpty()
-        val label = runCatching {
-            packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString()
-        }.getOrDefault(pkg)
+        val label = appLabel(pkg)
         val used = GlanceFormat(SystemClockSource).durationText(Duration.ofMillis(intent.getLongExtra(EXTRA_USED_MS, 0)))
         val canExtend = intent.getBooleanExtra(EXTRA_CAN_EXTEND, false)
         val settingsStore = DataStoreSettingsStore(this)

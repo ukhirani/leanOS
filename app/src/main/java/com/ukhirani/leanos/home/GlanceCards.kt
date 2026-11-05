@@ -1,12 +1,5 @@
 package com.ukhirani.leanos.home
 
-import android.content.ActivityNotFoundException
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.Uri
-import android.provider.Settings
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -37,7 +30,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.ukhirani.leanos.platform.MediaListenerService
 import com.ukhirani.leanos.platform.MediaSource
 
 /** The glance cards under the chips, in the order HomeLayout gives them. */
@@ -190,37 +182,5 @@ private fun EnableChip(feature: GlanceCard.Feature, onSetCity: () -> Unit) {
         color = MaterialTheme.colorScheme.secondaryContainer,
     ) {
         Text(text, Modifier.padding(horizontal = 16.dp, vertical = 14.dp), style = MaterialTheme.typography.labelLarge)
-    }
-}
-
-private fun Context.appLabel(packageName: String): String = try {
-    packageManager.getApplicationLabel(packageManager.getApplicationInfo(packageName, 0)).toString()
-} catch (_: PackageManager.NameNotFoundException) {
-    packageName
-}
-
-/** Our own usage-access page where the system offers one, else the full list. */
-internal fun Context.openUsageAccessSettings() {
-    val direct = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS, Uri.parse("package:$packageName"))
-    for (intent in listOf(direct, Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))) {
-        try {
-            return startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        } catch (_: ActivityNotFoundException) {
-            // Try the next one.
-        }
-    }
-}
-
-/** Our own notification-access page where the system offers one, else the full list. */
-internal fun Context.openNotificationAccessSettings() {
-    val listener = ComponentName(this, MediaListenerService::class.java).flattenToString()
-    val direct = Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
-        .putExtra(Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME, listener)
-    for (intent in listOf(direct, Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))) {
-        try {
-            return startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        } catch (_: ActivityNotFoundException) {
-            // Try the next one.
-        }
     }
 }

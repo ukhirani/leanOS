@@ -3,6 +3,8 @@
     <string name="limits_title">Daily limits</string>
     <string name="limits_empty">No daily limits yet. Long-press an app and choose Set daily limit.</string>
     <string name="limits_usage">%1$s of %2$s today</string>
+    <string name="limits_need_usage">Limits can\'t count your usage yet. Tap to turn on usage access.</string>
+    <string name="limits_need_focus">Limits can\'t block apps yet. Tap to turn on the LeanOS Focus service.</string>
     <string name="limit_set">Set daily limit</string>
     <string name="limit_dialog_title">Daily limit for %1$s</string>
     <string name="limit_dialog_minutes">Minutes per day</string>
